@@ -10,7 +10,11 @@ import {
   Avatar,
   Paper,
   IconButton,
-  InputAdornment
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import {
   Visibility,
@@ -20,12 +24,18 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [selectedUser, setSelectedUser] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+
+  const users = [
+    { id: 'admin', name: 'Administrador', email: 'admin@empresa.com' },
+    { id: 'supervisor', name: 'Supervisor Técnico', email: 'supervisor@empresa.com' },
+    { id: 'operador', name: 'Operador Metro', email: 'operador@empresa.com' }
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +43,16 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const success = await login(email, password);
+      const selectedUserData = users.find(user => user.id === selectedUser);
+      if (!selectedUserData) {
+        setError('Por favor selecciona un usuario');
+        setLoading(false);
+        return;
+      }
+
+      const success = await login(selectedUserData.email, password);
       if (!success) {
-        setError('Credenciales inválidas. Usa admin@empresa.com / admin123');
+        setError('Credenciales inválidas. Usa la contraseña: admin123');
       }
     } catch (err) {
       setError('Error al iniciar sesión');
@@ -88,23 +105,16 @@ const Login: React.FC = () => {
               INDUSTRIAS FMD
             </Typography>
             <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', mt: 1 }}>
-              Sistema de Contratos y Motores
+              Sistema de Proyectos y Motores
             </Typography>
           </Box>
           
           <CardContent sx={{ p: 4 }}>
             <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-              <TextField
-                margin="normal"
+              <FormControl 
+                fullWidth 
+                margin="normal" 
                 required
-                fullWidth
-                id="email"
-                label="Correo electrónico"
-                name="email"
-                autoComplete="email"
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
@@ -116,7 +126,23 @@ const Login: React.FC = () => {
                     },
                   },
                 }}
-              />
+              >
+                <InputLabel id="user-select-label">Usuario</InputLabel>
+                <Select
+                  labelId="user-select-label"
+                  id="user-select"
+                  value={selectedUser}
+                  label="Usuario"
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  autoFocus
+                >
+                  {users.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <TextField
                 margin="normal"
                 required
@@ -183,13 +209,15 @@ const Login: React.FC = () => {
               
               <Box sx={{ mt: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 2 }}>
                 <Typography variant="body2" color="text.secondary" align="center">
-                  <strong>Credenciales de prueba:</strong>
+                  <strong>Usuarios disponibles:</strong>
                 </Typography>
-                <Typography variant="body2" color="text.secondary" align="center">
-                  Email: admin@empresa.com
-                </Typography>
-                <Typography variant="body2" color="text.secondary" align="center">
-                  Contraseña: admin123
+                {users.map((user) => (
+                  <Typography key={user.id} variant="body2" color="text.secondary" align="center">
+                    {user.name} ({user.email})
+                  </Typography>
+                ))}
+                <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
+                  <strong>Contraseña para todos:</strong> admin123
                 </Typography>
               </Box>
             </Box>

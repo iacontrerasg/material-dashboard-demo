@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import DashboardHome from './components/DashboardHome';
-import ContractModule from './components/ContractModule';
+import ProjectModule from './components/ProjectModule';
 import MotorModule from './components/MotorModule';
 import { Box, Typography } from '@mui/material';
 
@@ -32,15 +32,38 @@ const theme = createTheme({
 const AppContent: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [selectedSection, setSelectedSection] = useState('dashboard');
+  const [selectedMotorId, setSelectedMotorId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  const handleNavigateToMotor = (motorId: string) => {
+    setSelectedMotorId(motorId);
+    setSelectedSection('motores');
+  };
+
+  const handleNavigateToProject = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setSelectedSection('contratos');
+  };
 
   const renderContent = () => {
     switch (selectedSection) {
       case 'dashboard':
-        return <DashboardHome />;
+        return <DashboardHome onNavigateToProject={handleNavigateToProject} />;
       case 'contratos':
-        return <ContractModule />;
+        return (
+          <ProjectModule 
+            onNavigateToMotor={handleNavigateToMotor}
+            selectedProjectId={selectedProjectId}
+            onClearSelectedProject={() => setSelectedProjectId(null)}
+          />
+        );
       case 'motores':
-        return <MotorModule />;
+        return (
+          <MotorModule 
+            selectedMotorId={selectedMotorId}
+            onClearSelectedMotor={() => setSelectedMotorId(null)}
+          />
+        );
       case 'configuracion':
         return (
           <Box sx={{ p: 3 }}>
@@ -53,7 +76,7 @@ const AppContent: React.FC = () => {
           </Box>
         );
       default:
-        return <DashboardHome />;
+        return <DashboardHome onNavigateToProject={handleNavigateToProject} />;
     }
   };
 

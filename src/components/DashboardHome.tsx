@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -11,7 +11,9 @@ import {
   ListItemIcon,
   Divider,
   Chip,
-  LinearProgress
+  LinearProgress,
+  TextField,
+  InputAdornment
 } from '@mui/material';
 import {
   TrendingUp,
@@ -20,67 +22,110 @@ import {
   Schedule,
   Warning,
   BusinessCenter,
-  Engineering
+  Engineering,
+  Search
 } from '@mui/icons-material';
 
-const DashboardHome: React.FC = () => {
+interface DashboardHomeProps {
+  onNavigateToProject: (projectId: string) => void;
+}
+
+const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigateToProject }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
   const stats = [
     {
-      title: 'Contratos Activos',
-      value: '18',
+      title: 'Proyectos Activos',
+      value: '6',
       icon: <CheckCircle />,
       color: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-      change: '+8%'
+      change: '+1 este mes'
     },
     {
       title: 'Motores Operativos',
-      value: '12',
+      value: '8',
       icon: <Train />,
       color: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
       change: '+2 esta semana'
     },
     {
       title: 'Motores en Reparación',
-      value: '3',
+      value: '2',
       icon: <Engineering />,
       color: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-      change: '-1 desde ayer'
+      change: 'en progreso'
     },
     {
       title: 'Mantenimientos Programados',
-      value: '7',
+      value: '2',
       icon: <Schedule />,
       color: 'linear-gradient(135deg, #1e3a8a 0%, #374151 100%)',
       change: 'próximos 30 días'
     }
   ];
 
-  const recentContracts = [
+  const recentProjects = [
     {
-      id: 1,
-      client: 'Metro Línea 1',
-      service: 'Mantenimiento Preventivo',
-      amount: 'Trimestral',
+      id: '20240001',
+      client: 'Metro CDMX',
+      service: 'Modernización Sistema Eléctrico Línea 1',
+      amount: '$450,000',
       status: 'activo',
-      date: '2024-01-15'
+      date: '2024-01-15',
+      motors: 2
     },
     {
-      id: 2,
-      client: 'Metro Línea 2',
-      service: 'Reparación de Motores',
-      amount: 'Mensual',
+      id: '20240002',
+      client: 'Metro CDMX',
+      service: 'Mantenimiento Preventivo Línea 2',
+      amount: '$280,000',
       status: 'activo',
-      date: '2024-01-20'
+      date: '2024-01-20',
+      motors: 2
     },
     {
-      id: 3,
-      client: 'Metro Línea 3',
-      service: 'Inspección Técnica',
-      amount: 'Semanal',
+      id: '20240003',
+      client: 'Metro CDMX',
+      service: 'Instalación Sistema Seguridad Línea 3',
+      amount: '$320,000',
       status: 'activo',
-      date: '2024-01-10'
+      date: '2024-01-10',
+      motors: 2
+    },
+    {
+      id: '20240004',
+      client: 'Metro CDMX',
+      service: 'Reparación Motores Tracción Línea 4',
+      amount: '$190,000',
+      status: 'activo',
+      date: '2024-01-25',
+      motors: 2
+    },
+    {
+      id: '20240005',
+      client: 'Metro CDMX',
+      service: 'Inspección Técnica Línea 5',
+      amount: '$95,000',
+      status: 'activo',
+      date: '2024-01-18',
+      motors: 2
+    },
+    {
+      id: '20240006',
+      client: 'Metro CDMX',
+      service: 'Implementación Sistema Híbrido Línea 6',
+      amount: '$580,000',
+      status: 'activo',
+      date: '2024-01-30',
+      motors: 2
     }
   ];
+
+  const filteredProjects = recentProjects.filter(project => 
+    project.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.service.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -116,7 +161,7 @@ const DashboardHome: React.FC = () => {
           Dashboard - INDUSTRIAS FMD
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Resumen general del sistema de contratos y motores del metro
+          Resumen general del sistema de proyectos y motores del metro
         </Typography>
       </Box>
 
@@ -164,55 +209,97 @@ const DashboardHome: React.FC = () => {
 
       {/* Contenido principal */}
       <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-        {/* Contratos recientes */}
+        {/* Proyectos recientes */}
         <Box sx={{ flex: '2 1 500px', minWidth: 500 }}>
           <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center' }}>
               <BusinessCenter sx={{ mr: 1, color: '#1e3a8a' }} />
-              Contratos Activos
+              Proyectos Activos
             </Typography>
+            
+            {/* Buscador de proyectos */}
+            <Box sx={{ mb: 3 }}>
+              <TextField
+                placeholder="Buscar proyectos por ID, cliente o servicio..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                fullWidth
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
+
             <List>
-              {recentContracts.map((contract, index) => (
-                <React.Fragment key={contract.id}>
-                  <ListItem sx={{ px: 0 }}>
+              {filteredProjects.map((project, index) => (
+                <React.Fragment key={project.id}>
+                  <ListItem 
+                    sx={{ 
+                      px: 0,
+                      cursor: 'pointer',
+                      borderRadius: 2,
+                      '&:hover': {
+                        backgroundColor: 'rgba(30, 58, 138, 0.05)',
+                      }
+                    }}
+                    onClick={() => onNavigateToProject(project.id)}
+                  >
                     <ListItemIcon>
-                      {getStatusIcon(contract.status)}
+                      {getStatusIcon(project.status)}
                     </ListItemIcon>
                     <ListItemText
                       primary={
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                            {contract.client}
-                          </Typography>
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                              {project.client}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#1e3a8a', fontWeight: 'medium' }}>
+                              ID: {project.id}
+                            </Typography>
+                          </Box>
                           <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
-                            {contract.amount}
+                            {project.amount}
                           </Typography>
                         </Box>
                       }
                       secondary={
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
                           <Typography variant="body2" color="text.secondary">
-                            {contract.service}
+                            {project.service}
                           </Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Chip
-                              label={contract.status}
+                              label={project.status}
                               size="small"
-                              color={getStatusColor(contract.status) as any}
+                              color={getStatusColor(project.status) as any}
                               variant="outlined"
                             />
                             <Typography variant="body2" color="text.secondary">
-                              {contract.date}
+                              {project.date}
                             </Typography>
                           </Box>
                         </Box>
                       }
                     />
                   </ListItem>
-                  {index < recentContracts.length - 1 && <Divider />}
+                  {index < filteredProjects.length - 1 && <Divider />}
                 </React.Fragment>
               ))}
             </List>
+            
+            {filteredProjects.length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  No se encontraron proyectos que coincidan con la búsqueda
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Box>
 
@@ -225,8 +312,8 @@ const DashboardHome: React.FC = () => {
             </Typography>
             <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2">Contratos Activos</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>18/24</Typography>
+                <Typography variant="body2">Proyectos Activos</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>6/8</Typography>
               </Box>
               <LinearProgress 
                 variant="determinate" 
@@ -244,11 +331,11 @@ const DashboardHome: React.FC = () => {
             <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2">Reparaciones Completadas</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>8/12</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>10/12</Typography>
               </Box>
               <LinearProgress 
                 variant="determinate" 
-                value={67} 
+                value={83} 
                 sx={{ 
                   height: 8, 
                   borderRadius: 4,
@@ -262,11 +349,11 @@ const DashboardHome: React.FC = () => {
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2">Motores Operativos</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>12/15</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>8/12</Typography>
               </Box>
               <LinearProgress 
                 variant="determinate" 
-                value={80} 
+                value={67} 
                 sx={{ 
                   height: 8, 
                   borderRadius: 4,
@@ -286,8 +373,8 @@ const DashboardHome: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2">Contratos Activos</Typography>
-                <Chip label="18" size="small" color="success" />
+                <Typography variant="body2">Proyectos Activos</Typography>
+                <Chip label="6" size="small" color="success" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2">Reparaciones Urgentes</Typography>
@@ -295,12 +382,12 @@ const DashboardHome: React.FC = () => {
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2">Motores en Mantenimiento</Typography>
-                <Chip label="3" size="small" color="info" />
+                <Chip label="2" size="small" color="info" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2">Próximos Mantenimientos</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
-                  7 programados
+                  2 programados
                 </Typography>
               </Box>
             </Box>

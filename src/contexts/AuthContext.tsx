@@ -26,12 +26,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     // Simulación de autenticación
-    if (email === 'admin@empresa.com' && password === 'admin123') {
-      const userData: User = {
+    const validUsers = [
+      {
         id: '1',
         name: 'Administrador',
         email: 'admin@empresa.com',
         role: 'admin'
+      },
+      {
+        id: '2',
+        name: 'Supervisor Técnico',
+        email: 'supervisor@empresa.com',
+        role: 'supervisor'
+      },
+      {
+        id: '3',
+        name: 'Operador Metro',
+        email: 'operador@empresa.com',
+        role: 'operador'
+      }
+    ];
+
+    // Buscar usuario válido
+    const user = validUsers.find(u => u.email === email);
+    
+    if (user && password === 'admin123') {
+      const userData: User = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
       };
       setUser(userData);
       setIsAuthenticated(true);

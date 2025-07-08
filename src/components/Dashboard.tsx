@@ -62,7 +62,7 @@ const Dashboard: React.FC<DashboardProps> = ({ children, selectedSection, onSect
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, key: 'dashboard' },
-    { text: 'Contratos', icon: <ContractIcon />, key: 'contratos' },
+    { text: 'Proyectos', icon: <ContractIcon />, key: 'contratos' },
     { text: 'Motores', icon: <Train />, key: 'motores' },
     { text: 'Configuración', icon: <Settings />, key: 'configuracion' },
   ];
@@ -83,7 +83,7 @@ const Dashboard: React.FC<DashboardProps> = ({ children, selectedSection, onSect
               INDUSTRIAS FMD
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              Sistema de Contratos y Motores
+              Sistema de Proyectos y Motores
             </Typography>
           </Box>
         </Box>

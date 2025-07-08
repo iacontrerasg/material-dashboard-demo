@@ -5,7 +5,7 @@ export interface User {
   role: string;
 }
 
-export interface Contract {
+export interface Project {
   id: string;
   clientName: string;
   clientEmail: string;
@@ -17,6 +17,37 @@ export interface Contract {
   endDate: string;
   status: 'pendiente' | 'activo' | 'completado' | 'cancelado';
   createdAt: string;
+  associatedMotors?: Motor[];
+}
+
+export interface DiagnosticStep {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  estado: 'pendiente' | 'en_proceso' | 'completado' | 'fallido';
+  resultado?: 'satisfactorio' | 'requiere_atencion' | 'critico';
+  observaciones?: string;
+  fechaEjecucion?: string;
+  tecnicoResponsable?: string;
+  requiereMantenimiento?: boolean;
+  tipoMantenimiento?: 'preventivo' | 'correctivo' | 'predictivo';
+}
+
+export interface MaintenanceTask {
+  id: string;
+  diagnosticStepId: number;
+  titulo: string;
+  descripcion: string;
+  tipo: 'preventivo' | 'correctivo' | 'predictivo';
+  prioridad: 'baja' | 'media' | 'alta' | 'critica';
+  estado: 'pendiente' | 'en_proceso' | 'completado' | 'cancelado';
+  fechaCreacion: string;
+  fechaEstimada?: string;
+  fechaCompletado?: string;
+  tecnicoAsignado?: string;
+  observaciones?: string;
+  resultadoDiagnostico: 'satisfactorio' | 'requiere_atencion' | 'critico';
+  pasoOriginal: string;
 }
 
 export interface Motor {
@@ -41,6 +72,13 @@ export interface Motor {
   horasOperacion: number;
   observaciones: string;
   creadoEn: string;
+  projectId?: string;
+  projectName?: string;
+  diagnosticos?: DiagnosticStep[];
+  ultimoDiagnostico?: string;
+  proximoDiagnostico?: string;
+  diagnosticoCompletado?: boolean;
+  mantenimientos?: MaintenanceTask[];
 }
 
 export interface AuthContextType {
