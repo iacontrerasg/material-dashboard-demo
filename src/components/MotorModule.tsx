@@ -37,6 +37,7 @@ import {
   StepLabel,
   StepContent
 } from '@mui/material';
+import { generatePDF, TEMPLATE_IDS } from '../templates';
 import {
   Add,
   Edit,
@@ -533,20 +534,123 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
   };
 
   const handleDownloadPlan = (motor: Motor) => {
-    // Crear un link temporal para descargar el PDF
-    const link = document.createElement('a');
-    link.href = '/pdt.pdf';
-    link.download = `Plan_Trabajo_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    setSnackbar({ 
-      open: true, 
-      message: `Plan de trabajo descargado para ${motor.marca} ${motor.modelo}`, 
-      severity: 'success' 
-    });
+    generateWorkPlan(motor);
+  };
+
+  const generateWorkPlan = async (motor: Motor) => {
+    try {
+      await generatePDF(TEMPLATE_IDS.WORK_PLAN, {
+        motor,
+        fecha: new Date().toLocaleDateString('es-MX'),
+        cliente: 'Metro de la Ciudad de México',
+        folio: motor.id || 'AUTO'
+      }, {
+        filename: `Plan_Trabajo_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
+        format: 'letter',
+        orientation: 'portrait',
+        templateOptions: {
+          width: '216mm',
+          scale: 1.3,
+          fontSize: 15,
+          fontFamily: 'Arial, sans-serif',
+          margins: { top: 25, right: 25, bottom: 25, left: 25 }
+        }
+      });
+      
+      setSnackbar({ 
+        open: true, 
+        message: `Plan de trabajo generado para ${motor.marca} ${motor.modelo}`, 
+        severity: 'success' 
+      });
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Error al generar el plan de trabajo', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  const generateDiagnosticReport = async (motor: Motor) => {
+    try {
+      await generatePDF(TEMPLATE_IDS.DIAGNOSTIC_REPORT, {
+        motor,
+        diagnosticSteps,
+        fecha: new Date().toLocaleDateString('es-MX'),
+        tecnico: motor.responsableTecnico,
+        supervisor: 'Supervisor de Mantenimiento',
+        observacionesGenerales: 'Diagnóstico completo del motor según protocolo estándar.',
+        recomendaciones: 'Seguir con el programa de mantenimiento preventivo según las observaciones encontradas.'
+      }, {
+        filename: `Reporte_Diagnostico_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
+        format: 'letter',
+        orientation: 'portrait',
+        templateOptions: {
+          width: '216mm',
+          scale: 1.3,
+          fontSize: 14,
+          fontFamily: 'Arial, sans-serif',
+          margins: { top: 20, right: 20, bottom: 20, left: 20 }
+        }
+      });
+      
+      setSnackbar({ 
+        open: true, 
+        message: `Reporte de diagnóstico generado para ${motor.marca} ${motor.modelo}`, 
+        severity: 'success' 
+      });
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Error al generar el reporte de diagnóstico', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  const generateMaintenanceReport = async (motor: Motor) => {
+    try {
+      await generatePDF(TEMPLATE_IDS.MAINTENANCE_REPORT, {
+        motor,
+        maintenanceTasks,
+        fecha: new Date().toLocaleDateString('es-MX'),
+        tecnico: motor.responsableTecnico,
+        supervisor: 'Supervisor de Mantenimiento',
+        tipoMantenimiento: 'preventivo',
+        proximoMantenimiento: motor.proximoMantenimiento,
+        observacionesGenerales: 'Mantenimiento realizado según protocolo estándar.',
+        repuestosUsados: [
+          { codigo: 'REP001', descripcion: 'Filtro de aire', cantidad: 1, precio: 25.50 },
+          { codigo: 'REP002', descripcion: 'Aceite lubricante', cantidad: 2, precio: 45.00 }
+        ]
+      }, {
+        filename: `Reporte_Mantenimiento_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
+        format: 'letter',
+        orientation: 'portrait',
+        templateOptions: {
+          width: '216mm',
+          scale: 1.3,
+          fontSize: 14,
+          fontFamily: 'Arial, sans-serif',
+          margins: { top: 20, right: 20, bottom: 20, left: 20 }
+        }
+      });
+      
+      setSnackbar({ 
+        open: true, 
+        message: `Reporte de mantenimiento generado para ${motor.marca} ${motor.modelo}`, 
+        severity: 'success' 
+      });
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Error al generar el reporte de mantenimiento', 
+        severity: 'error' 
+      });
+    }
   };
 
   // Funciones para el modal de detalles
@@ -2232,6 +2336,40 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                       onClick={() => setSnackbar({ open: true, message: 'Ficha técnica descargada', severity: 'success' })}
                     >
                       Descargar
+                    </Button>
+                  </ListItem>
+                  <Divider />
+                  <ListItem>
+                    <ListItemIcon>
+                      <Assessment />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Reporte de Diagnóstico"
+                      secondary="Informe completo con resultados de diagnóstico"
+                    />
+                    <Button
+                      variant="outlined"
+                      startIcon={<Download />}
+                      onClick={() => generateDiagnosticReport(selectedMotor)}
+                    >
+                      Generar
+                    </Button>
+                  </ListItem>
+                  <Divider />
+                  <ListItem>
+                    <ListItemIcon>
+                      <Build />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Reporte de Mantenimiento"
+                      secondary="Informe detallado de tareas de mantenimiento"
+                    />
+                    <Button
+                      variant="outlined"
+                      startIcon={<Download />}
+                      onClick={() => generateMaintenanceReport(selectedMotor)}
+                    >
+                      Generar
                     </Button>
                   </ListItem>
                   <Divider />

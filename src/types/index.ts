@@ -86,4 +86,39 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+}
+
+// Tipos para el sistema de templating
+export interface TemplateData {
+  [key: string]: any;
+}
+
+export interface TemplateOptions {
+  width?: string;
+  height?: string;
+  scale?: number;
+  fontSize?: number;
+  fontFamily?: string;
+  margins?: {
+    top?: number;
+    right?: number;
+    bottom?: number;
+    left?: number;
+  };
+}
+
+export interface PDFTemplate {
+  id: string;
+  name: string;
+  description: string;
+  generate: (data: TemplateData, options?: TemplateOptions) => string;
+}
+
+export interface PDFGenerationOptions {
+  template: PDFTemplate;
+  data: TemplateData;
+  filename?: string;
+  format?: 'letter' | 'a4' | 'legal';
+  orientation?: 'portrait' | 'landscape';
+  templateOptions?: TemplateOptions;
 } 
