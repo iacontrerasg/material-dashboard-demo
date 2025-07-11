@@ -12,6 +12,7 @@ export interface Project {
   clientPhone: string;
   serviceName: string;
   serviceDescription: string;
+  tipo: 'motores' | 'tarjetas' | 'balizas';
   amount: number;
   startDate: string;
   endDate: string;

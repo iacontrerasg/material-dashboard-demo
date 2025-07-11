@@ -6,9 +6,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import DashboardHome from './components/DashboardHome';
-import ProjectModule from './components/ProjectModule';
-import MotorModule from './components/MotorModule';
-import { Box, Typography } from '@mui/material';
+import ProjectsMotorsLayout from './components/ProjectsMotorsLayout';
+
 
 const theme = createTheme({
   palette: {
@@ -32,16 +31,8 @@ const theme = createTheme({
 const AppContent: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [selectedSection, setSelectedSection] = useState('dashboard');
-  const [selectedMotorId, setSelectedMotorId] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  const handleNavigateToMotor = (motorId: string) => {
-    setSelectedMotorId(motorId);
-    setSelectedSection('motores');
-  };
-
-  const handleNavigateToProject = (projectId: string) => {
-    setSelectedProjectId(projectId);
+  const handleNavigateToProject = () => {
     setSelectedSection('contratos');
   };
 
@@ -50,31 +41,7 @@ const AppContent: React.FC = () => {
       case 'dashboard':
         return <DashboardHome onNavigateToProject={handleNavigateToProject} />;
       case 'contratos':
-        return (
-          <ProjectModule 
-            onNavigateToMotor={handleNavigateToMotor}
-            selectedProjectId={selectedProjectId}
-            onClearSelectedProject={() => setSelectedProjectId(null)}
-          />
-        );
-      case 'motores':
-        return (
-          <MotorModule 
-            selectedMotorId={selectedMotorId}
-            onClearSelectedMotor={() => setSelectedMotorId(null)}
-          />
-        );
-      case 'configuracion':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
-              Configuración del Sistema
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Módulo de configuración - Próximamente
-            </Typography>
-          </Box>
-        );
+        return <ProjectsMotorsLayout />;
       default:
         return <DashboardHome onNavigateToProject={handleNavigateToProject} />;
     }

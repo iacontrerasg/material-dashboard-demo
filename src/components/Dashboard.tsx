@@ -24,9 +24,7 @@ import {
   Description as ContractIcon,
   AccountCircle,
   Logout,
-  Settings,
-  Business,
-  Train
+  Business
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -63,8 +61,6 @@ const Dashboard: React.FC<DashboardProps> = ({ children, selectedSection, onSect
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, key: 'dashboard' },
     { text: 'Proyectos', icon: <ContractIcon />, key: 'contratos' },
-    { text: 'Motores', icon: <Train />, key: 'motores' },
-    { text: 'Configuración', icon: <Settings />, key: 'configuracion' },
   ];
 
   const drawer = (
@@ -205,12 +201,6 @@ const Dashboard: React.FC<DashboardProps> = ({ children, selectedSection, onSect
                   <AccountCircle fontSize="small" />
                 </ListItemIcon>
                 Mi Perfil
-              </MenuItem>
-              <MenuItem onClick={handleClose}>
-                <ListItemIcon>
-                  <Settings fontSize="small" />
-                </ListItemIcon>
-                Configuración
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>

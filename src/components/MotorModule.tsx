@@ -35,7 +35,8 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent
+  StepContent,
+  Tooltip,
 } from '@mui/material';
 import { generatePDF, TEMPLATE_IDS } from '../templates';
 import {
@@ -65,36 +66,60 @@ import {
   Api,
   Cable,
   Verified,
-  Assessment
+  Assessment,
+  ArrowBack,
+  Clear,
 } from '@mui/icons-material';
 import { Motor, DiagnosticStep, MaintenanceTask } from '../types';
 
 interface MotorModuleProps {
   selectedMotorId?: string | null;
   onClearSelectedMotor?: () => void;
+  selectedProjectId?: string | null;
 }
 
-const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelectedMotor }) => {
+const MotorModule: React.FC<MotorModuleProps> = ({
+  selectedMotorId,
+  onClearSelectedMotor,
+  selectedProjectId,
+}) => {
   const [motores, setMotores] = useState<Motor[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingMotor, setEditingMotor] = useState<Motor | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState('todos');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
-  
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
+
+  // Estado local para controlar el filtro de proyecto (puede ser limpiado por el usuario)
+  const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null);
+
+  // Estado para filtro específico del diagrama de Gantt
+  const [ganttFilterSerie, setGanttFilterSerie] = useState('');
+
   // Estados para el modal de detalles
   const [openDetailsModal, setOpenDetailsModal] = useState(false);
   const [selectedMotor, setSelectedMotor] = useState<Motor | null>(null);
   const [tabValue, setTabValue] = useState(0);
-  
+
   // Estados para diagnósticos
   const [diagnosticSteps, setDiagnosticSteps] = useState<DiagnosticStep[]>([]);
   const [stepComments, setStepComments] = useState<{ [key: number]: string }>({});
   const [completingStep, setCompletingStep] = useState<number | null>(null);
-  
+
   // Estados para mantenimientos
   const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
-  
+
+  // Estados para modal de plan de trabajo
+  const [workPlanModalOpen, setWorkPlanModalOpen] = useState(false);
+  const [workPlanData, setWorkPlanData] = useState({
+    objetivos: '',
+    descripcion: '',
+  });
+
   // Form states
   const [formData, setFormData] = useState({
     marca: '',
@@ -117,353 +142,128 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
     horasOperacion: 0,
     observaciones: '',
     projectId: '',
-    projectName: ''
+    projectName: '',
   });
+
+  // Inicializar el filtro de proyecto cuando se recibe selectedProjectId
+  useEffect(() => {
+    setActiveProjectFilter(selectedProjectId || null);
+  }, [selectedProjectId]);
 
   // Cargar motores de ejemplo al iniciar
   useEffect(() => {
     const sampleMotores: Motor[] = [
       {
-        id: '1',
-        marca: 'Siemens',
-        modelo: 'Velaro MS',
-        numeroSerie: 'SIE789456123',
-        tipo: 'electrico',
-        potencia: '6400 kW',
-        voltaje: '25000 V',
-        anio: 2020,
-        lineaMetro: 'Línea 1',
-        numeroFormacion: 'F-101',
-        tipoFormacion: 'cabeza',
-        responsableTecnico: 'Carlos Mendoza',
-        emailResponsable: 'carlos.mendoza@metro.com',
-        telefonoResponsable: '+52 555 1111111',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-01-15',
-        proximoMantenimiento: '2024-07-15',
-        kilometrosRecorridos: 145000,
-        horasOperacion: 2250,
-        observaciones: 'Mantenimiento preventivo programado',
-        creadoEn: '2024-01-01',
-        projectId: '20240001',
-        projectName: 'Modernización Sistema Eléctrico Línea 1'
-      },
-      {
-        id: '2',
-        marca: 'Siemens',
-        modelo: 'Velaro MS',
-        numeroSerie: 'SIE789456124',
-        tipo: 'electrico',
-        potencia: '6400 kW',
-        voltaje: '25000 V',
-        anio: 2020,
-        lineaMetro: 'Línea 1',
-        numeroFormacion: 'F-102',
-        tipoFormacion: 'intermedio',
-        responsableTecnico: 'Carlos Mendoza',
-        emailResponsable: 'carlos.mendoza@metro.com',
-        telefonoResponsable: '+52 555 1111111',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-01-10',
-        proximoMantenimiento: '2024-07-10',
-        kilometrosRecorridos: 138000,
-        horasOperacion: 2180,
-        observaciones: 'Funcionamiento óptimo',
-        creadoEn: '2024-01-01',
-        projectId: '20240001',
-        projectName: 'Modernización Sistema Eléctrico Línea 1'
-      },
-      {
-        id: '3',
-        marca: 'Alstom',
-        modelo: 'Metropolis',
-        numeroSerie: 'ALS321654987',
-        tipo: 'traccion_electrica',
-        potencia: '1600 kW',
-        voltaje: '750 V',
-        anio: 2019,
-        lineaMetro: 'Línea 2',
-        numeroFormacion: 'F-205',
-        tipoFormacion: 'intermedio',
-        responsableTecnico: 'Ana Rodríguez',
-        emailResponsable: 'ana.rodriguez@metro.com',
-        telefonoResponsable: '+52 555 2222222',
-        estado: 'requiere_mantenimiento',
-        ultimoMantenimiento: '2023-12-01',
-        proximoMantenimiento: '2024-02-01',
-        kilometrosRecorridos: 278000,
-        horasOperacion: 3900,
-        observaciones: 'Revisar sistema de frenado regenerativo',
-        creadoEn: '2023-11-15',
-        projectId: '20240002',
-        projectName: 'Mantenimiento Preventivo Línea 2'
-      },
-      {
-        id: '4',
-        marca: 'Alstom',
-        modelo: 'Metropolis',
-        numeroSerie: 'ALS321654988',
-        tipo: 'traccion_electrica',
-        potencia: '1600 kW',
-        voltaje: '750 V',
-        anio: 2019,
-        lineaMetro: 'Línea 2',
-        numeroFormacion: 'F-206',
-        tipoFormacion: 'cola',
-        responsableTecnico: 'Ana Rodríguez',
-        emailResponsable: 'ana.rodriguez@metro.com',
-        telefonoResponsable: '+52 555 2222222',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-01-05',
-        proximoMantenimiento: '2024-04-05',
-        kilometrosRecorridos: 265000,
-        horasOperacion: 3720,
-        observaciones: 'Revisión mensual completada',
-        creadoEn: '2023-11-15',
-        projectId: '20240002',
-        projectName: 'Mantenimiento Preventivo Línea 2'
-      },
-      {
-        id: '5',
-        marca: 'CAF',
-        modelo: 'Urbos',
-        numeroSerie: 'CAF555777999',
-        tipo: 'diesel_electrico',
-        potencia: '2400 kW',
-        voltaje: '1500 V',
-        anio: 2022,
-        lineaMetro: 'Línea 3',
-        numeroFormacion: 'F-312',
-        tipoFormacion: 'cola',
-        responsableTecnico: 'Luis García',
-        emailResponsable: 'luis.garcia@metro.com',
-        telefonoResponsable: '+52 555 3333333',
-        estado: 'en_mantenimiento',
-        ultimoMantenimiento: '2024-01-20',
-        proximoMantenimiento: '2024-08-20',
-        kilometrosRecorridos: 95000,
-        horasOperacion: 1250,
-        observaciones: 'Actualización de sistema de control',
-        creadoEn: '2024-01-05',
-        projectId: '20240003',
-        projectName: 'Instalación Sistema Seguridad Línea 3'
-      },
-      {
-        id: '6',
-        marca: 'CAF',
-        modelo: 'Urbos',
-        numeroSerie: 'CAF555778000',
-        tipo: 'diesel_electrico',
-        potencia: '2400 kW',
-        voltaje: '1500 V',
-        anio: 2022,
-        lineaMetro: 'Línea 3',
-        numeroFormacion: 'F-313',
-        tipoFormacion: 'cabeza',
-        responsableTecnico: 'Luis García',
-        emailResponsable: 'luis.garcia@metro.com',
-        telefonoResponsable: '+52 555 3333333',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-01-18',
-        proximoMantenimiento: '2024-08-18',
-        kilometrosRecorridos: 92000,
-        horasOperacion: 1180,
-        observaciones: 'Sistema de seguridad instalado',
-        creadoEn: '2024-01-05',
-        projectId: '20240003',
-        projectName: 'Instalación Sistema Seguridad Línea 3'
-      },
-      {
         id: '7',
-        marca: 'Bombardier',
-        modelo: 'Regina',
-        numeroSerie: 'BOM445678901',
-        tipo: 'traccion_electrica',
-        potencia: '1800 kW',
-        voltaje: '1000 V',
-        anio: 2021,
-        lineaMetro: 'Línea 4',
-        numeroFormacion: 'F-401',
+        marca: 'INDUCTANCIA',
+        modelo: 'MSL',
+        numeroSerie: 'C312569',
+        tipo: 'electrico',
+        potencia: '2500 kW',
+        voltaje: '1500 V',
+        anio: 2018,
+        lineaMetro: 'Línea 1',
+        numeroFormacion: 'MSL-001',
         tipoFormacion: 'cabeza',
-        responsableTecnico: 'María Fernández',
-        emailResponsable: 'maria.fernandez@metro.com',
-        telefonoResponsable: '+52 555 4444444',
-        estado: 'requiere_mantenimiento',
-        ultimoMantenimiento: '2023-11-25',
-        proximoMantenimiento: '2024-02-25',
-        kilometrosRecorridos: 185000,
-        horasOperacion: 2850,
-        observaciones: 'Revisión mayor de motores de tracción',
-        creadoEn: '2024-01-20',
-        projectId: '20240004',
-        projectName: 'Reparación Motores Tracción Línea 4'
+        responsableTecnico: 'Ing. Roberto Sánchez',
+        emailResponsable: 'roberto.sanchez@stc.gob.mx',
+        telefonoResponsable: '+52 555 3003003',
+        estado: 'en_mantenimiento',
+        ultimoMantenimiento: '2024-03-01',
+        proximoMantenimiento: '2024-09-01',
+        kilometrosRecorridos: 485000,
+        horasOperacion: 6250,
+        observaciones: 'Inductancia MSL en proceso de mantenimiento mayor',
+        creadoEn: '2024-03-01',
+        projectId: 'STC-GACS-CNCS-119/2024',
+        projectName: 'Mantenimiento a Motores Eléctricos',
       },
       {
         id: '8',
-        marca: 'Bombardier',
-        modelo: 'Regina',
-        numeroSerie: 'BOM445678902',
+        marca: 'MOTOR DE TRACCION',
+        modelo: 'MB-3230',
+        numeroSerie: 'T0037',
         tipo: 'traccion_electrica',
-        potencia: '1800 kW',
-        voltaje: '1000 V',
-        anio: 2021,
-        lineaMetro: 'Línea 4',
-        numeroFormacion: 'F-402',
-        tipoFormacion: 'intermedio',
-        responsableTecnico: 'María Fernández',
-        emailResponsable: 'maria.fernandez@metro.com',
-        telefonoResponsable: '+52 555 4444444',
-        estado: 'en_mantenimiento',
-        ultimoMantenimiento: '2024-01-25',
-        proximoMantenimiento: '2024-04-25',
-        kilometrosRecorridos: 192000,
-        horasOperacion: 2920,
-        observaciones: 'Reparación en progreso',
-        creadoEn: '2024-01-20',
-        projectId: '20240004',
-        projectName: 'Reparación Motores Tracción Línea 4'
+        potencia: '3200 kW',
+        voltaje: '1500 V',
+        anio: 2019,
+        lineaMetro: 'Línea 2',
+        numeroFormacion: 'MB-001',
+        tipoFormacion: 'cabeza',
+        responsableTecnico: 'Ing. Roberto Sánchez',
+        emailResponsable: 'roberto.sanchez@stc.gob.mx',
+        telefonoResponsable: '+52 555 3003003',
+        estado: 'operativo',
+        ultimoMantenimiento: '2024-02-15',
+        proximoMantenimiento: '2024-08-15',
+        kilometrosRecorridos: 420000,
+        horasOperacion: 5800,
+        observaciones: 'Motor de tracción MB-3230 funcionando óptimamente',
+        creadoEn: '2024-03-01',
+        projectId: 'STC-GACS-CNCS-119/2024',
+        projectName: 'Mantenimiento a Motores Eléctricos',
       },
       {
         id: '9',
-        marca: 'Hitachi',
-        modelo: 'A-Train',
-        numeroSerie: 'HIT667889012',
-        tipo: 'electrico',
-        potencia: '1400 kW',
-        voltaje: '800 V',
-        anio: 2023,
-        lineaMetro: 'Línea 5',
-        numeroFormacion: 'F-501',
+        marca: 'MOTOR DE TRACCION',
+        modelo: 'MP-82',
+        numeroSerie: '67826',
+        tipo: 'traccion_electrica',
+        potencia: '2800 kW',
+        voltaje: '1500 V',
+        anio: 2020,
+        lineaMetro: 'Línea 3',
+        numeroFormacion: 'MP-001',
         tipoFormacion: 'cabeza',
-        responsableTecnico: 'Pedro Martínez',
-        emailResponsable: 'pedro.martinez@metro.com',
-        telefonoResponsable: '+52 555 5555555',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-01-18',
-        proximoMantenimiento: '2024-07-18',
-        kilometrosRecorridos: 45000,
-        horasOperacion: 680,
-        observaciones: 'Inspección técnica completada',
-        creadoEn: '2024-01-15',
-        projectId: '20240005',
-        projectName: 'Inspección Técnica Línea 5'
+        responsableTecnico: 'Ing. Roberto Sánchez',
+        emailResponsable: 'roberto.sanchez@stc.gob.mx',
+        telefonoResponsable: '+52 555 3003003',
+        estado: 'requiere_mantenimiento',
+        ultimoMantenimiento: '2023-12-10',
+        proximoMantenimiento: '2024-03-10',
+        kilometrosRecorridos: 380000,
+        horasOperacion: 5200,
+        observaciones: 'Motor de tracción MP-82 requiere revisión de rodamientos',
+        creadoEn: '2024-03-01',
+        projectId: 'STC-GACS-CNCS-119/2024',
+        projectName: 'Mantenimiento a Motores Eléctricos',
       },
-      {
-        id: '10',
-        marca: 'Hitachi',
-        modelo: 'A-Train',
-        numeroSerie: 'HIT667889013',
-        tipo: 'electrico',
-        potencia: '1400 kW',
-        voltaje: '800 V',
-        anio: 2023,
-        lineaMetro: 'Línea 5',
-        numeroFormacion: 'F-502',
-        tipoFormacion: 'cola',
-        responsableTecnico: 'Pedro Martínez',
-        emailResponsable: 'pedro.martinez@metro.com',
-        telefonoResponsable: '+52 555 5555555',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-01-20',
-        proximoMantenimiento: '2024-07-20',
-        kilometrosRecorridos: 43000,
-        horasOperacion: 650,
-        observaciones: 'Sistemas funcionando correctamente',
-        creadoEn: '2024-01-15',
-        projectId: '20240005',
-        projectName: 'Inspección Técnica Línea 5'
-      },
-      {
-        id: '11',
-        marca: 'Stadler',
-        modelo: 'METRO',
-        numeroSerie: 'STD778990123',
-        tipo: 'hibrido',
-        potencia: '2000 kW',
-        voltaje: '1200 V',
-        anio: 2024,
-        lineaMetro: 'Línea 6',
-        numeroFormacion: 'F-601',
-        tipoFormacion: 'cabeza',
-        responsableTecnico: 'Carmen López',
-        emailResponsable: 'carmen.lopez@metro.com',
-        telefonoResponsable: '+52 555 6666666',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-01-30',
-        proximoMantenimiento: '2024-07-30',
-        kilometrosRecorridos: 15000,
-        horasOperacion: 240,
-        observaciones: 'Sistema híbrido funcionando óptimamente',
-        creadoEn: '2024-01-25',
-        projectId: '20240006',
-        projectName: 'Implementación Sistema Híbrido Línea 6'
-      },
-      {
-        id: '12',
-        marca: 'Stadler',
-        modelo: 'METRO',
-        numeroSerie: 'STD778990124',
-        tipo: 'hibrido',
-        potencia: '2000 kW',
-        voltaje: '1200 V',
-        anio: 2024,
-        lineaMetro: 'Línea 6',
-        numeroFormacion: 'F-602',
-        tipoFormacion: 'intermedio',
-        responsableTecnico: 'Carmen López',
-        emailResponsable: 'carmen.lopez@metro.com',
-        telefonoResponsable: '+52 555 6666666',
-        estado: 'operativo',
-        ultimoMantenimiento: '2024-02-01',
-        proximoMantenimiento: '2024-08-01',
-        kilometrosRecorridos: 12000,
-        horasOperacion: 195,
-        observaciones: 'Pruebas iniciales completadas',
-        creadoEn: '2024-01-25',
-        projectId: '20240006',
-        projectName: 'Implementación Sistema Híbrido Línea 6'
-      }
     ];
     setMotores(sampleMotores);
   }, []);
 
-  // Abrir modal de detalle cuando se navega desde proyecto
+  // Abrir modal de detalle cuando se navega desde proyecto a un motor específico
   useEffect(() => {
-    if (selectedMotorId && motores.length > 0) {
+    if (selectedMotorId && selectedMotorId !== 'PROJECT_LIST' && motores.length > 0) {
       const motor = motores.find(m => m.id === selectedMotorId);
       if (motor) {
         handleOpenDetailsModal(motor);
-        // Limpiar el selectedMotorId después de abrir el modal
-        if (onClearSelectedMotor) {
-          onClearSelectedMotor();
-        }
       }
     }
-  }, [selectedMotorId, motores, onClearSelectedMotor]);
+  }, [selectedMotorId, motores]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === 'anio' || name === 'kilometrosRecorridos' || name === 'horasOperacion' 
-        ? parseInt(value) || 0 
-        : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]:
+        name === 'anio' || name === 'kilometrosRecorridos' || name === 'horasOperacion'
+          ? parseInt(value) || 0
+          : value,
     }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const nuevoMotor: Motor = {
       id: editingMotor?.id || Date.now().toString(),
       ...formData,
-      creadoEn: editingMotor?.creadoEn || new Date().toISOString()
+      creadoEn: editingMotor?.creadoEn || new Date().toISOString(),
     };
 
     if (editingMotor) {
-      setMotores(prev => prev.map(motor => 
-        motor.id === editingMotor.id ? nuevoMotor : motor
-      ));
+      setMotores(prev => prev.map(motor => (motor.id === editingMotor.id ? nuevoMotor : motor)));
       setSnackbar({ open: true, message: 'Motor actualizado exitosamente', severity: 'success' });
     } else {
       setMotores(prev => [...prev, nuevoMotor]);
@@ -497,7 +297,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
         horasOperacion: motor.horasOperacion,
         observaciones: motor.observaciones,
         projectId: motor.projectId || '',
-        projectName: motor.projectName || ''
+        projectName: motor.projectName || '',
       });
     } else {
       setEditingMotor(null);
@@ -522,7 +322,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
         horasOperacion: 0,
         observaciones: '',
         projectId: '',
-        projectName: ''
+        projectName: '',
       });
     }
     setOpenDialog(true);
@@ -534,121 +334,162 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
   };
 
   const handleDownloadPlan = (motor: Motor) => {
-    generateWorkPlan(motor);
+    setSelectedMotor(motor);
+    setWorkPlanModalOpen(true);
   };
 
-  const generateWorkPlan = async (motor: Motor) => {
+  const handleCloseWorkPlanModal = () => {
+    setWorkPlanModalOpen(false);
+    setWorkPlanData({
+      objetivos: '',
+      descripcion: '',
+    });
+  };
+
+  const handleWorkPlanInputChange = (field: string, value: string) => {
+    setWorkPlanData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleGenerateWorkPlan = () => {
+    if (selectedMotor && workPlanData.objetivos && workPlanData.descripcion) {
+      generateWorkPlan(selectedMotor, workPlanData);
+      handleCloseWorkPlanModal();
+    }
+  };
+
+  const generateWorkPlan = async (
+    motor: Motor,
+    planData?: { objetivos: string; descripcion: string },
+  ) => {
     try {
-      await generatePDF(TEMPLATE_IDS.WORK_PLAN, {
-        motor,
-        fecha: new Date().toLocaleDateString('es-MX'),
-        cliente: 'Metro de la Ciudad de México',
-        folio: motor.id || 'AUTO'
-      }, {
-        filename: `Plan_Trabajo_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
-        format: 'letter',
-        orientation: 'portrait',
-        templateOptions: {
-          width: '216mm',
-          scale: 1.3,
-          fontSize: 15,
-          fontFamily: 'Arial, sans-serif',
-          margins: { top: 25, right: 25, bottom: 25, left: 25 }
-        }
-      });
-      
-      setSnackbar({ 
-        open: true, 
-        message: `Plan de trabajo generado para ${motor.marca} ${motor.modelo}`, 
-        severity: 'success' 
+      await generatePDF(
+        TEMPLATE_IDS.WORK_PLAN,
+        {
+          motor,
+          fecha: new Date().toLocaleDateString('es-MX'),
+          cliente: 'Metro de la Ciudad de México',
+          folio: motor.id || 'AUTO',
+          objetivos: planData?.objetivos || 'Objetivos por definir',
+          descripcion: planData?.descripcion || 'Descripción por definir',
+        },
+        {
+          filename: `Plan_Trabajo_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
+          format: 'letter',
+          orientation: 'portrait',
+          templateOptions: {
+            width: '216mm',
+            scale: 1.3,
+            fontSize: 15,
+            fontFamily: 'Arial, sans-serif',
+            margins: { top: 25, right: 25, bottom: 25, left: 25 },
+          },
+        },
+      );
+
+      setSnackbar({
+        open: true,
+        message: `Plan de trabajo generado para ${motor.marca} ${motor.modelo}`,
+        severity: 'success',
       });
     } catch (error) {
       console.error('Error al generar PDF:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Error al generar el plan de trabajo', 
-        severity: 'error' 
+      setSnackbar({
+        open: true,
+        message: 'Error al generar el plan de trabajo',
+        severity: 'error',
       });
     }
   };
 
   const generateDiagnosticReport = async (motor: Motor) => {
     try {
-      await generatePDF(TEMPLATE_IDS.DIAGNOSTIC_REPORT, {
-        motor,
-        diagnosticSteps,
-        fecha: new Date().toLocaleDateString('es-MX'),
-        tecnico: motor.responsableTecnico,
-        supervisor: 'Supervisor de Mantenimiento',
-        observacionesGenerales: 'Diagnóstico completo del motor según protocolo estándar.',
-        recomendaciones: 'Seguir con el programa de mantenimiento preventivo según las observaciones encontradas.'
-      }, {
-        filename: `Reporte_Diagnostico_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
-        format: 'letter',
-        orientation: 'portrait',
-        templateOptions: {
-          width: '216mm',
-          scale: 1.3,
-          fontSize: 14,
-          fontFamily: 'Arial, sans-serif',
-          margins: { top: 20, right: 20, bottom: 20, left: 20 }
-        }
-      });
-      
-      setSnackbar({ 
-        open: true, 
-        message: `Reporte de diagnóstico generado para ${motor.marca} ${motor.modelo}`, 
-        severity: 'success' 
+      await generatePDF(
+        TEMPLATE_IDS.DIAGNOSTIC_REPORT,
+        {
+          motor,
+          diagnosticSteps,
+          fecha: new Date().toLocaleDateString('es-MX'),
+          tecnico: motor.responsableTecnico,
+          supervisor: 'Supervisor de Mantenimiento',
+          observacionesGenerales: 'Diagnóstico completo del motor según protocolo estándar.',
+          recomendaciones:
+            'Seguir con el programa de mantenimiento preventivo según las observaciones encontradas.',
+        },
+        {
+          filename: `Reporte_Diagnostico_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
+          format: 'letter',
+          orientation: 'portrait',
+          templateOptions: {
+            width: '216mm',
+            scale: 1.3,
+            fontSize: 14,
+            fontFamily: 'Arial, sans-serif',
+            margins: { top: 20, right: 20, bottom: 20, left: 20 },
+          },
+        },
+      );
+
+      setSnackbar({
+        open: true,
+        message: `Reporte de diagnóstico generado para ${motor.marca} ${motor.modelo}`,
+        severity: 'success',
       });
     } catch (error) {
       console.error('Error al generar PDF:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Error al generar el reporte de diagnóstico', 
-        severity: 'error' 
+      setSnackbar({
+        open: true,
+        message: 'Error al generar el reporte de diagnóstico',
+        severity: 'error',
       });
     }
   };
 
   const generateMaintenanceReport = async (motor: Motor) => {
     try {
-      await generatePDF(TEMPLATE_IDS.MAINTENANCE_REPORT, {
-        motor,
-        maintenanceTasks,
-        fecha: new Date().toLocaleDateString('es-MX'),
-        tecnico: motor.responsableTecnico,
-        supervisor: 'Supervisor de Mantenimiento',
-        tipoMantenimiento: 'preventivo',
-        proximoMantenimiento: motor.proximoMantenimiento,
-        observacionesGenerales: 'Mantenimiento realizado según protocolo estándar.',
-        repuestosUsados: [
-          { codigo: 'REP001', descripcion: 'Filtro de aire', cantidad: 1, precio: 25.50 },
-          { codigo: 'REP002', descripcion: 'Aceite lubricante', cantidad: 2, precio: 45.00 }
-        ]
-      }, {
-        filename: `Reporte_Mantenimiento_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
-        format: 'letter',
-        orientation: 'portrait',
-        templateOptions: {
-          width: '216mm',
-          scale: 1.3,
-          fontSize: 14,
-          fontFamily: 'Arial, sans-serif',
-          margins: { top: 20, right: 20, bottom: 20, left: 20 }
-        }
-      });
-      
-      setSnackbar({ 
-        open: true, 
-        message: `Reporte de mantenimiento generado para ${motor.marca} ${motor.modelo}`, 
-        severity: 'success' 
+      await generatePDF(
+        TEMPLATE_IDS.MAINTENANCE_REPORT,
+        {
+          motor,
+          maintenanceTasks,
+          fecha: new Date().toLocaleDateString('es-MX'),
+          tecnico: motor.responsableTecnico,
+          supervisor: 'Supervisor de Mantenimiento',
+          tipoMantenimiento: 'preventivo',
+          proximoMantenimiento: motor.proximoMantenimiento,
+          observacionesGenerales: 'Mantenimiento realizado según protocolo estándar.',
+          repuestosUsados: [
+            { codigo: 'REP001', descripcion: 'Filtro de aire', cantidad: 1, precio: 25.5 },
+            { codigo: 'REP002', descripcion: 'Aceite lubricante', cantidad: 2, precio: 45.0 },
+          ],
+        },
+        {
+          filename: `Reporte_Mantenimiento_${motor.marca}_${motor.modelo}_${motor.numeroFormacion}.pdf`,
+          format: 'letter',
+          orientation: 'portrait',
+          templateOptions: {
+            width: '216mm',
+            scale: 1.3,
+            fontSize: 14,
+            fontFamily: 'Arial, sans-serif',
+            margins: { top: 20, right: 20, bottom: 20, left: 20 },
+          },
+        },
+      );
+
+      setSnackbar({
+        open: true,
+        message: `Reporte de mantenimiento generado para ${motor.marca} ${motor.modelo}`,
+        severity: 'success',
       });
     } catch (error) {
       console.error('Error al generar PDF:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Error al generar el reporte de mantenimiento', 
-        severity: 'error' 
+      setSnackbar({
+        open: true,
+        message: 'Error al generar el reporte de mantenimiento',
+        severity: 'error',
       });
     }
   };
@@ -667,6 +508,9 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
     setCompletingStep(null);
     setStepComments({});
     setMaintenanceTasks([]);
+
+    // Ya no regresamos automáticamente al módulo de proyectos al cerrar el modal
+    // El usuario permanece en la lista de motores
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -697,7 +541,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
         horasOperacion: selectedMotor.horasOperacion,
         observaciones: selectedMotor.observaciones,
         projectId: selectedMotor.projectId || '',
-        projectName: selectedMotor.projectName || ''
+        projectName: selectedMotor.projectName || '',
       });
       setOpenDialog(true);
       setOpenDetailsModal(false);
@@ -706,20 +550,29 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {
-      case 'operativo': return 'success';
-      case 'en_mantenimiento': return 'info';
-      case 'requiere_mantenimiento': return 'warning';
-      case 'fuera_servicio': return 'error';
-      default: return 'default';
+      case 'operativo':
+        return 'success';
+      case 'en_mantenimiento':
+        return 'info';
+      case 'requiere_mantenimiento':
+        return 'warning';
+      case 'fuera_servicio':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   const getTipoIcon = (tipo: string) => {
     switch (tipo) {
-      case 'electrico': return <ElectricBolt sx={{ color: '#00e676' }} />;
-      case 'diesel_electrico': return <Build sx={{ color: '#ff6d00' }} />;
-      case 'traccion_electrica': return <Train sx={{ color: '#2196f3' }} />;
-      default: return <Engineering sx={{ color: '#f44336' }} />;
+      case 'electrico':
+        return <ElectricBolt sx={{ color: '#00e676' }} />;
+      case 'diesel_electrico':
+        return <Build sx={{ color: '#ff6d00' }} />;
+      case 'traccion_electrica':
+        return <Train sx={{ color: '#2196f3' }} />;
+      default:
+        return <Engineering sx={{ color: '#f44336' }} />;
     }
   };
 
@@ -731,135 +584,150 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
         nombre: 'Inspección Visual Exterior',
         descripcion: 'Revisión visual completa del motor, cables, conexiones y estructura externa',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 2,
         nombre: 'Verificación de Conexiones Eléctricas',
         descripcion: 'Prueba de continuidad y verificación de todas las conexiones eléctricas',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 3,
         nombre: 'Medición de Voltaje de Funcionamiento',
         descripcion: 'Verificación de voltajes en diferentes puntos del motor',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 4,
         nombre: 'Prueba de Corriente de Carga',
         descripcion: 'Medición de corriente bajo diferentes cargas de trabajo',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 5,
         nombre: 'Análisis de Vibración',
         descripcion: 'Medición de vibraciones en diferentes puntos del motor',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 6,
         nombre: 'Verificación de Temperatura',
         descripcion: 'Monitoreo de temperatura en componentes críticos',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 7,
         nombre: 'Prueba de Rendimiento',
         descripcion: 'Evaluación del rendimiento del motor bajo carga normal',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 8,
         nombre: 'Verificación de Sistema de Frenado',
         descripcion: 'Prueba del sistema de frenado regenerativo y mecánico',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 9,
         nombre: 'Análisis de Ruido',
         descripcion: 'Medición de niveles de ruido y detección de sonidos anormales',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 10,
         nombre: 'Prueba de Aislamiento',
         descripcion: 'Verificación del aislamiento eléctrico de los bobinados',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 11,
         nombre: 'Verificación de Rodamientos',
         descripcion: 'Inspección del estado de los rodamientos y lubricación',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 12,
         nombre: 'Prueba de Sensores',
         descripcion: 'Verificación del funcionamiento de todos los sensores',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 13,
         nombre: 'Análisis de Consumo Energético',
         descripcion: 'Medición del consumo de energía en diferentes condiciones',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 14,
         nombre: 'Verificación de Sistema de Control',
         descripcion: 'Prueba del sistema de control electrónico del motor',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 15,
         nombre: 'Actualización de Firmware',
         descripcion: 'Verificación y actualización del firmware del motor',
         estado: 'pendiente',
-        requiereMantenimiento: false
+        requiereMantenimiento: false,
       },
       {
         id: 16,
         nombre: 'Reporte Final de Diagnóstico',
         descripcion: 'Compilación de resultados y recomendaciones finales',
         estado: 'pendiente',
-        requiereMantenimiento: false
-      }
+        requiereMantenimiento: false,
+      },
     ];
   };
 
   // Función para obtener el icono del paso de diagnóstico
   const getDiagnosticIcon = (stepId: number) => {
     const icons = [
-      <Visibility />, <Cable />, <ElectricBolt />, <Assessment />, <Vibration />,
-      <Thermostat />, <Speed />, <Build />, <VolumeUp />, <Api />,
-      <Engineering />, <Visibility />, <Assessment />, <SafetyCheck />, <Update />, <Verified />
+      <Visibility />,
+      <Cable />,
+      <ElectricBolt />,
+      <Assessment />,
+      <Vibration />,
+      <Thermostat />,
+      <Speed />,
+      <Build />,
+      <VolumeUp />,
+      <Api />,
+      <Engineering />,
+      <Visibility />,
+      <Assessment />,
+      <SafetyCheck />,
+      <Update />,
+      <Verified />,
     ];
     return icons[stepId - 1] || <Assignment />;
   };
 
-
-
   // Función para obtener el icono del estado del diagnóstico
   const getDiagnosticStatusIcon = (estado: string) => {
     switch (estado) {
-      case 'completado': return <CheckCircle sx={{ color: '#4caf50' }} />;
-      case 'en_proceso': return <PlayArrow sx={{ color: '#2196f3' }} />;
-      case 'fallido': return <Error sx={{ color: '#f44336' }} />;
-      default: return <Warning sx={{ color: '#ff9800' }} />;
+      case 'completado':
+        return <CheckCircle sx={{ color: '#4caf50' }} />;
+      case 'en_proceso':
+        return <PlayArrow sx={{ color: '#2196f3' }} />;
+      case 'fallido':
+        return <Error sx={{ color: '#f44336' }} />;
+      default:
+        return <Warning sx={{ color: '#ff9800' }} />;
     }
   };
 
@@ -867,28 +735,28 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
   useEffect(() => {
     if (selectedMotor && openDetailsModal) {
       let steps: DiagnosticStep[];
-      
+
       if (selectedMotor.diagnosticos && selectedMotor.diagnosticos.length > 0) {
         // Si el motor ya tiene diagnósticos, usar los existentes
         steps = selectedMotor.diagnosticos;
       } else {
         // Si no tiene diagnósticos, crear los pasos iniciales
         steps = createDiagnosticSteps();
-        
+
         // Guardar los pasos iniciales en el motor
         const updatedMotor = {
           ...selectedMotor,
           diagnosticos: steps,
           ultimoDiagnostico: selectedMotor.ultimoDiagnostico || new Date().toISOString(),
-          diagnosticoCompletado: false
+          diagnosticoCompletado: false,
         };
 
-        setMotores(prev => prev.map(motor => 
-          motor.id === selectedMotor.id ? updatedMotor : motor
-        ));
+        setMotores(prev =>
+          prev.map(motor => (motor.id === selectedMotor.id ? updatedMotor : motor)),
+        );
         setSelectedMotor(updatedMotor);
       }
-      
+
       setDiagnosticSteps(steps);
       setMaintenanceTasks(selectedMotor.mantenimientos || []);
     }
@@ -896,27 +764,23 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
 
   // Función para actualizar el estado de un paso de diagnóstico
   const updateDiagnosticStep = (stepId: number, updates: Partial<DiagnosticStep>) => {
-    setDiagnosticSteps(prevSteps => 
-      prevSteps.map(step => 
-        step.id === stepId ? { ...step, ...updates } : step
-      )
+    setDiagnosticSteps(prevSteps =>
+      prevSteps.map(step => (step.id === stepId ? { ...step, ...updates } : step)),
     );
 
     // Persistir cambios de estado (como iniciar un paso)
     if (selectedMotor && (updates.estado === 'en_proceso' || updates.estado === 'pendiente')) {
-      const updatedSteps = diagnosticSteps.map(step => 
-        step.id === stepId ? { ...step, ...updates } : step
+      const updatedSteps = diagnosticSteps.map(step =>
+        step.id === stepId ? { ...step, ...updates } : step,
       );
 
       const updatedMotor = {
         ...selectedMotor,
-        diagnosticos: updatedSteps
+        diagnosticos: updatedSteps,
       };
 
       // Actualizar el motor en la lista de motores
-      setMotores(prev => prev.map(motor => 
-        motor.id === selectedMotor.id ? updatedMotor : motor
-      ));
+      setMotores(prev => prev.map(motor => (motor.id === selectedMotor.id ? updatedMotor : motor)));
 
       // Actualizar el motor seleccionado
       setSelectedMotor(updatedMotor);
@@ -924,10 +788,17 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
   };
 
   // Función para marcar un paso como completado
-  const completeDiagnosticStep = (stepId: number, resultado: 'satisfactorio' | 'requiere_atencion' | 'critico') => {
+  const completeDiagnosticStep = (
+    stepId: number,
+    resultado: 'satisfactorio' | 'requiere_atencion' | 'critico',
+  ) => {
     const observaciones = stepComments[stepId];
     if (!observaciones || observaciones.trim() === '') {
-      setSnackbar({ open: true, message: 'Debe ingresar un comentario para completar el diagnóstico', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: 'Debe ingresar un comentario para completar el diagnóstico',
+        severity: 'error',
+      });
       return;
     }
 
@@ -937,7 +808,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
       observaciones,
       fechaEjecucion: new Date().toISOString(),
       tecnicoResponsable: 'Usuario Actual',
-      requiereMantenimiento: resultado !== 'satisfactorio'
+      requiereMantenimiento: resultado !== 'satisfactorio',
     };
 
     // Actualizar el paso en el estado local
@@ -945,8 +816,8 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
 
     // Persistir en el motor
     if (selectedMotor) {
-      const updatedSteps = diagnosticSteps.map(step => 
-        step.id === stepId ? { ...step, ...updatedStep } : step
+      const updatedSteps = diagnosticSteps.map(step =>
+        step.id === stepId ? { ...step, ...updatedStep } : step,
       );
 
       // Generar mantenimiento automáticamente si es necesario
@@ -965,25 +836,27 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
         diagnosticos: updatedSteps,
         ultimoDiagnostico: new Date().toISOString(),
         diagnosticoCompletado: updatedSteps.every(step => step.estado === 'completado'),
-        mantenimientos: resultado !== 'satisfactorio' ? newMaintenanceTasks : selectedMotor.mantenimientos || []
+        mantenimientos:
+          resultado !== 'satisfactorio' ? newMaintenanceTasks : selectedMotor.mantenimientos || [],
       };
 
       // Actualizar el motor en la lista de motores
-      setMotores(prev => prev.map(motor => 
-        motor.id === selectedMotor.id ? updatedMotor : motor
-      ));
+      setMotores(prev => prev.map(motor => (motor.id === selectedMotor.id ? updatedMotor : motor)));
 
       // Actualizar el motor seleccionado
       setSelectedMotor(updatedMotor);
 
-      const successMessage = resultado !== 'satisfactorio' 
-        ? `Paso "${diagnosticSteps.find(s => s.id === stepId)?.nombre}" completado. Mantenimiento generado automáticamente.`
-        : `Paso "${diagnosticSteps.find(s => s.id === stepId)?.nombre}" completado exitosamente`;
+      const successMessage =
+        resultado !== 'satisfactorio'
+          ? `Paso "${
+              diagnosticSteps.find(s => s.id === stepId)?.nombre
+            }" completado. Mantenimiento generado automáticamente.`
+          : `Paso "${diagnosticSteps.find(s => s.id === stepId)?.nombre}" completado exitosamente`;
 
-      setSnackbar({ 
-        open: true, 
-        message: successMessage, 
-        severity: 'success' 
+      setSnackbar({
+        open: true,
+        message: successMessage,
+        severity: 'success',
       });
     }
 
@@ -998,42 +871,57 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
   };
 
   // Función para generar mantenimiento automáticamente
-  const generateMaintenanceTask = (step: DiagnosticStep, resultado: 'satisfactorio' | 'requiere_atencion' | 'critico', observaciones: string): MaintenanceTask => {
+  const generateMaintenanceTask = (
+    step: DiagnosticStep,
+    resultado: 'satisfactorio' | 'requiere_atencion' | 'critico',
+    observaciones: string,
+  ): MaintenanceTask => {
     const now = new Date();
-    const estimatedDate = new Date(now.getTime() + (resultado === 'critico' ? 1 : resultado === 'requiere_atencion' ? 7 : 30) * 24 * 60 * 60 * 1000);
-    
+    const estimatedDate = new Date(
+      now.getTime() +
+        (resultado === 'critico' ? 1 : resultado === 'requiere_atencion' ? 7 : 30) *
+          24 *
+          60 *
+          60 *
+          1000,
+    );
+
     return {
       id: `maint_${step.id}_${Date.now()}`,
       diagnosticStepId: step.id,
       titulo: `Mantenimiento: ${step.nombre}`,
       descripcion: `${step.descripcion}. Observaciones: ${observaciones}`,
-      tipo: resultado === 'critico' ? 'correctivo' : resultado === 'requiere_atencion' ? 'predictivo' : 'preventivo',
-      prioridad: resultado === 'critico' ? 'critica' : resultado === 'requiere_atencion' ? 'alta' : 'media',
+      tipo:
+        resultado === 'critico'
+          ? 'correctivo'
+          : resultado === 'requiere_atencion'
+          ? 'predictivo'
+          : 'preventivo',
+      prioridad:
+        resultado === 'critico' ? 'critica' : resultado === 'requiere_atencion' ? 'alta' : 'media',
       estado: 'pendiente',
       fechaCreacion: now.toISOString(),
       fechaEstimada: estimatedDate.toISOString(),
       tecnicoAsignado: 'Por asignar',
       observaciones: observaciones,
       resultadoDiagnostico: resultado,
-      pasoOriginal: step.nombre
+      pasoOriginal: step.nombre,
     };
   };
 
   // Función para actualizar el estado de un mantenimiento
   const updateMaintenanceTask = (taskId: string, updates: Partial<MaintenanceTask>) => {
     if (selectedMotor) {
-      const updatedTasks = maintenanceTasks.map(task => 
-        task.id === taskId ? { ...task, ...updates } : task
+      const updatedTasks = maintenanceTasks.map(task =>
+        task.id === taskId ? { ...task, ...updates } : task,
       );
 
       const updatedMotor = {
         ...selectedMotor,
-        mantenimientos: updatedTasks
+        mantenimientos: updatedTasks,
       };
 
-      setMotores(prev => prev.map(motor => 
-        motor.id === selectedMotor.id ? updatedMotor : motor
-      ));
+      setMotores(prev => prev.map(motor => (motor.id === selectedMotor.id ? updatedMotor : motor)));
       setSelectedMotor(updatedMotor);
       setMaintenanceTasks(updatedTasks);
     }
@@ -1044,34 +932,43 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
     updateMaintenanceTask(taskId, {
       estado: 'completado',
       fechaCompletado: new Date().toISOString(),
-      observaciones: observaciones || ''
+      observaciones: observaciones || '',
     });
 
-    setSnackbar({ 
-      open: true, 
-      message: 'Mantenimiento completado exitosamente', 
-      severity: 'success' 
+    setSnackbar({
+      open: true,
+      message: 'Mantenimiento completado exitosamente',
+      severity: 'success',
     });
   };
 
   // Función para obtener el color de prioridad
   const getPriorityColor = (prioridad: string) => {
     switch (prioridad) {
-      case 'critica': return 'error';
-      case 'alta': return 'warning';
-      case 'media': return 'info';
-      case 'baja': return 'success';
-      default: return 'default';
+      case 'critica':
+        return 'error';
+      case 'alta':
+        return 'warning';
+      case 'media':
+        return 'info';
+      case 'baja':
+        return 'success';
+      default:
+        return 'default';
     }
   };
 
   // Función para obtener el color del estado de mantenimiento
   const getMaintenanceStatusColor = (estado: string) => {
     switch (estado) {
-      case 'completado': return 'success';
-      case 'en_proceso': return 'info';
-      case 'cancelado': return 'error';
-      default: return 'default';
+      case 'completado':
+        return 'success';
+      case 'en_proceso':
+        return 'info';
+      case 'cancelado':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
@@ -1079,59 +976,129 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
   const resetDiagnostics = () => {
     if (selectedMotor) {
       const freshSteps = createDiagnosticSteps();
-      
+
       const updatedMotor = {
         ...selectedMotor,
         diagnosticos: freshSteps,
         ultimoDiagnostico: new Date().toISOString(),
         diagnosticoCompletado: false,
-        mantenimientos: [] // Limpiar mantenimientos también
+        mantenimientos: [], // Limpiar mantenimientos también
       };
 
-      setMotores(prev => prev.map(motor => 
-        motor.id === selectedMotor.id ? updatedMotor : motor
-      ));
+      setMotores(prev => prev.map(motor => (motor.id === selectedMotor.id ? updatedMotor : motor)));
       setSelectedMotor(updatedMotor);
       setDiagnosticSteps(freshSteps);
       setMaintenanceTasks([]);
       setStepComments({});
       setCompletingStep(null);
 
-      setSnackbar({ 
-        open: true, 
-        message: 'Diagnósticos y mantenimientos reiniciados correctamente', 
-        severity: 'success' 
+      setSnackbar({
+        open: true,
+        message: 'Diagnósticos y mantenimientos reiniciados correctamente',
+        severity: 'success',
       });
     }
   };
 
   const filteredMotores = motores.filter(motor => {
-    const matchesSearch = motor.responsableTecnico.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.numeroSerie.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.lineaMetro.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         motor.numeroFormacion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (motor.projectId && motor.projectId.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (motor.projectName && motor.projectName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch =
+      motor.responsableTecnico.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      motor.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      motor.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      motor.numeroSerie.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      motor.lineaMetro.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      motor.numeroFormacion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (motor.projectId && motor.projectId.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (motor.projectName && motor.projectName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesEstado = filterEstado === 'todos' || motor.estado === filterEstado;
-    return matchesSearch && matchesEstado;
+    // Filtrar por proyecto usando el estado local (que puede ser limpiado por el usuario)
+    const matchesProject = !activeProjectFilter || motor.projectId === activeProjectFilter;
+    return matchesSearch && matchesEstado && matchesProject;
+  });
+
+  // Filtrado específico para el diagrama de Gantt
+  const ganttFilteredMotores = filteredMotores.filter(motor => {
+    const matchesGanttSerie =
+      ganttFilterSerie === '' ||
+      motor.numeroSerie.toLowerCase().includes(ganttFilterSerie.toLowerCase());
+    return matchesGanttSerie;
   });
 
   return (
     <Box>
+      {/* Botón para volver a proyectos si se navegó desde allí */}
+      {selectedMotorId && onClearSelectedMotor && (
+        <Box sx={{ mb: 3 }}>
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBack />}
+            onClick={onClearSelectedMotor}
+            sx={{
+              borderColor: '#1e3a8a',
+              color: '#1e3a8a',
+              '&:hover': {
+                borderColor: '#1e40af',
+                backgroundColor: 'rgba(30, 58, 138, 0.05)',
+              },
+            }}
+          >
+            Volver a Proyectos
+          </Button>
+        </Box>
+      )}
+
+      {/* Indicador de filtro por proyecto */}
+      {activeProjectFilter && (
+        <Box sx={{ mb: 3 }}>
+          <Alert
+            severity="info"
+            sx={{
+              backgroundColor: 'rgba(30, 58, 138, 0.1)',
+              color: '#1e3a8a',
+              border: '1px solid rgba(30, 58, 138, 0.3)',
+              '& .MuiAlert-icon': { color: '#1e3a8a' },
+            }}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => setActiveProjectFilter(null)}
+                startIcon={<Clear />}
+                sx={{
+                  color: '#1e3a8a',
+                  '&:hover': { backgroundColor: 'rgba(30, 58, 138, 0.1)' },
+                }}
+              >
+                Mostrar todos
+              </Button>
+            }
+          >
+            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+              Mostrando motores del proyecto: <strong>{activeProjectFilter}</strong>
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {filteredMotores.length > 0 && filteredMotores[0].projectName && (
+                <>• {filteredMotores[0].projectName}</>
+              )}
+            </Typography>
+          </Alert>
+        </Box>
+      )}
+
       {/* Estadísticas */}
       <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
         <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <Card sx={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #374151 100%)', color: 'white' }}>
+          <Card
+            sx={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #374151 100%)', color: 'white' }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                    {motores.length}
+                    {activeProjectFilter ? filteredMotores.length : motores.length}
                   </Typography>
                   <Typography variant="body2">
-                    Total Motores
+                    {activeProjectFilter ? 'Motores del Proyecto' : 'Total Motores'}
                   </Typography>
                 </Box>
                 <Train sx={{ fontSize: 40, opacity: 0.8 }} />
@@ -1140,16 +1107,18 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <Card sx={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', color: 'white' }}>
+          <Card
+            sx={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)', color: 'white' }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                    {motores.filter(m => m.estado === 'en_mantenimiento').length}
+                    {activeProjectFilter
+                      ? filteredMotores.filter(m => m.estado === 'en_mantenimiento').length
+                      : motores.filter(m => m.estado === 'en_mantenimiento').length}
                   </Typography>
-                  <Typography variant="body2">
-                    En Mantenimiento
-                  </Typography>
+                  <Typography variant="body2">En Mantenimiento</Typography>
                 </Box>
                 <Build sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
@@ -1157,16 +1126,18 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <Card sx={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', color: 'white' }}>
+          <Card
+            sx={{ background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', color: 'white' }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
-                    {motores.filter(m => m.estado === 'requiere_mantenimiento').length}
+                    {activeProjectFilter
+                      ? filteredMotores.filter(m => m.estado === 'requiere_mantenimiento').length
+                      : motores.filter(m => m.estado === 'requiere_mantenimiento').length}
                   </Typography>
-                  <Typography variant="body2">
-                    Requieren Mantenimiento
-                  </Typography>
+                  <Typography variant="body2">Requieren Mantenimiento</Typography>
                 </Box>
                 <Engineering sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
@@ -1175,13 +1146,267 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
         </Box>
       </Box>
 
+      {/* Diagrama de Gantt - Progreso de Diagnósticos */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography
+          variant="h6"
+          sx={{ mb: 3, fontWeight: 'bold', color: '#1e3a8a', textAlign: 'center' }}
+        >
+          Progreso de Diagnósticos
+        </Typography>
+
+        {/* Filtro específico para el diagrama de Gantt */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <TextField
+            size="small"
+            placeholder="Filtrar por número de serie..."
+            value={ganttFilterSerie}
+            onChange={e => setGanttFilterSerie(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              width: 300,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+                backgroundColor: '#f8f9fa',
+                '&:hover': {
+                  backgroundColor: '#e9ecef',
+                },
+                '&.Mui-focused': {
+                  backgroundColor: 'white',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#1e3a8a',
+                  },
+                },
+              },
+            }}
+          />
+        </Box>
+
+        <Box sx={{ overflowX: 'auto', display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ minWidth: 1000 }}>
+            {/* Header del Gantt */}
+            <Box sx={{ display: 'flex', mb: 1 }}>
+              <Box
+                sx={{ width: '200px', p: 1, fontWeight: 'bold', borderBottom: '2px solid #1e3a8a' }}
+              >
+                Motor
+              </Box>
+              {Array.from({ length: 16 }, (_, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    width: '50px',
+                    p: 1,
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem',
+                    borderBottom: '2px solid #1e3a8a',
+                    borderLeft: i > 0 ? '1px solid #e0e0e0' : 'none',
+                  }}
+                >
+                  E{i + 1}
+                </Box>
+              ))}
+            </Box>
+
+            {/* Filas de motores */}
+            {ganttFilteredMotores.length === 0 ? (
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  py: 4,
+                  color: 'text.secondary',
+                }}
+              >
+                <Typography variant="body2">
+                  No se encontraron motores que coincidan con el filtro "{ganttFilterSerie}"
+                </Typography>
+              </Box>
+            ) : (
+              ganttFilteredMotores.slice(0, 10).map((motor, motorIndex) => (
+                <Box
+                  key={motor.id}
+                  sx={{
+                    display: 'flex',
+                    borderBottom: '1px solid #e0e0e0',
+                    '&:hover': { backgroundColor: 'rgba(30, 58, 138, 0.05)' },
+                  }}
+                >
+                  {/* Columna del motor */}
+                  <Box sx={{ width: '200px', p: 1.5, borderRight: '1px solid #e0e0e0' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      {motor.numeroSerie}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                      {motor.marca} {motor.modelo}
+                    </Typography>
+                  </Box>
+
+                  {/* Etapas de diagnóstico */}
+                  {Array.from({ length: 16 }, (_, etapaIndex) => {
+                    const etapa = etapaIndex + 1;
+                    const diagnosticSteps = createDiagnosticSteps();
+                    const currentStep = diagnosticSteps[etapaIndex];
+
+                    // Simular estado basado en el motor y etapa
+                    let estado = 'pendiente';
+                    let completedBy = '';
+                    let completedDate = '';
+
+                    // Lógica para determinar estado (simulada)
+                    if (motorIndex === 0) {
+                      // Motor 001 más avanzado
+                      if (etapa <= 8) {
+                        estado = 'completado';
+                        completedBy = 'Juan Pérez';
+                        completedDate = `2024-01-${10 + etapa}`;
+                      } else if (etapa <= 10) {
+                        estado = 'en_progreso';
+                      }
+                    } else if (motorIndex === 1) {
+                      // Motor 002
+                      if (etapa <= 5) {
+                        estado = 'completado';
+                        completedBy = 'María García';
+                        completedDate = `2024-01-${15 + etapa}`;
+                      } else if (etapa <= 7) {
+                        estado = 'en_progreso';
+                      }
+                    } else if (motorIndex === 2) {
+                      // Motor 003
+                      if (etapa <= 3) {
+                        estado = 'completado';
+                        completedBy = 'Carlos López';
+                        completedDate = `2024-01-${20 + etapa}`;
+                      } else if (etapa <= 4) {
+                        estado = 'en_progreso';
+                      }
+                    }
+
+                    const getEstadoColor = () => {
+                      switch (estado) {
+                        case 'completado':
+                          return '#4caf50';
+                        case 'en_progreso':
+                          return '#ff9800';
+                        case 'pendiente':
+                          return '#e0e0e0';
+                        default:
+                          return '#e0e0e0';
+                      }
+                    };
+
+                    const getEstadoIcon = () => {
+                      switch (estado) {
+                        case 'completado':
+                          return '✓';
+                        case 'en_progreso':
+                          return '◐';
+                        case 'pendiente':
+                          return '○';
+                        default:
+                          return '○';
+                      }
+                    };
+
+                    return (
+                      <Tooltip
+                        key={etapa}
+                        title={
+                          estado === 'completado' ? (
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                {currentStep.nombre}
+                              </Typography>
+                              <Typography variant="body2">Completado por: {completedBy}</Typography>
+                              <Typography variant="body2">
+                                Fecha: {new Date(completedDate).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                          ) : estado === 'en_progreso' ? (
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                {currentStep.nombre}
+                              </Typography>
+                              <Typography variant="body2">En progreso...</Typography>
+                            </Box>
+                          ) : (
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                {currentStep.nombre}
+                              </Typography>
+                              <Typography variant="body2">Pendiente</Typography>
+                            </Box>
+                          )
+                        }
+                        arrow
+                      >
+                        <Box
+                          sx={{
+                            width: '50px',
+                            height: 48,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: getEstadoColor(),
+                            borderLeft: etapa > 1 ? '1px solid #e0e0e0' : 'none',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              opacity: 0.8,
+                            },
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: estado === 'pendiente' ? '#666' : 'white',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            {getEstadoIcon()}
+                          </Typography>
+                        </Box>
+                      </Tooltip>
+                    );
+                  })}
+                </Box>
+              ))
+            )}
+          </Box>
+        </Box>
+
+        {/* Leyenda */}
+        <Box sx={{ display: 'flex', gap: 3, mt: 2, justifyContent: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 16, height: 16, backgroundColor: '#4caf50', borderRadius: 1 }} />
+            <Typography variant="body2">Completado</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 16, height: 16, backgroundColor: '#ff9800', borderRadius: 1 }} />
+            <Typography variant="body2">En Progreso</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 16, height: 16, backgroundColor: '#e0e0e0', borderRadius: 1 }} />
+            <Typography variant="body2">Pendiente</Typography>
+          </Box>
+        </Box>
+      </Paper>
+
       {/* Controles */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             placeholder="Buscar por motor, línea, proyecto..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -1195,7 +1420,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
             select
             label="Filtrar por estado"
             value={filterEstado}
-            onChange={(e) => setFilterEstado(e.target.value)}
+            onChange={e => setFilterEstado(e.target.value)}
             sx={{ minWidth: 150 }}
           >
             <MenuItem value="todos">Todos</MenuItem>
@@ -1223,15 +1448,15 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredMotores.map((motor) => (
-              <TableRow 
-                key={motor.id} 
-                hover 
-                sx={{ 
+            {filteredMotores.map(motor => (
+              <TableRow
+                key={motor.id}
+                hover
+                sx={{
                   cursor: 'pointer',
                   '&:hover': {
                     backgroundColor: 'rgba(30, 58, 138, 0.05)',
-                  }
+                  },
                 }}
                 onClick={() => handleOpenDetailsModal(motor)}
               >
@@ -1277,7 +1502,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                   </Typography>
                 </TableCell>
                 <TableCell>
-                                      <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
                     {motor.kilometrosRecorridos.toLocaleString()} km
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -1298,20 +1523,20 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                     {motor.diagnosticos ? (
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                          {motor.diagnosticos.filter(d => d.estado === 'completado').length}/16 pasos
+                          {motor.diagnosticos.filter(d => d.estado === 'completado').length}/16
+                          pasos
                         </Typography>
                         <LinearProgress
                           variant="determinate"
-                          value={(motor.diagnosticos.filter(d => d.estado === 'completado').length / 16) * 100}
+                          value={
+                            (motor.diagnosticos.filter(d => d.estado === 'completado').length /
+                              16) *
+                            100
+                          }
                           sx={{ width: 80, height: 4, borderRadius: 2 }}
                         />
                         {motor.diagnosticoCompletado && (
-                          <Chip 
-                            label="Completo" 
-                            color="success" 
-                            size="small"
-                            sx={{ mt: 0.5 }}
-                          />
+                          <Chip label="Completo" color="success" size="small" sx={{ mt: 0.5 }} />
                         )}
                       </Box>
                     ) : (
@@ -1349,9 +1574,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
 
       {/* Dialog para crear/editar motor */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingMotor ? 'Editar Motor' : 'Registrar Nuevo Motor'}
-        </DialogTitle>
+        <DialogTitle>{editingMotor ? 'Editar Motor' : 'Registrar Nuevo Motor'}</DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -1605,13 +1828,13 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
       </Dialog>
 
       {/* Modal de detalles del motor */}
-      <Dialog 
-        open={openDetailsModal} 
-        onClose={handleCloseDetailsModal} 
-        maxWidth="lg" 
+      <Dialog
+        open={openDetailsModal}
+        onClose={handleCloseDetailsModal}
+        maxWidth="lg"
         fullWidth
         PaperProps={{
-          sx: { minHeight: '80vh' }
+          sx: { minHeight: '80vh' },
         }}
       >
         <DialogTitle>
@@ -1621,9 +1844,9 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
               <Typography variant="h6">
                 {selectedMotor?.marca} {selectedMotor?.modelo}
               </Typography>
-              <Chip 
-                label={selectedMotor?.estado.replace('_', ' ')} 
-                color={selectedMotor ? getEstadoColor(selectedMotor.estado) as any : 'default'}
+              <Chip
+                label={selectedMotor?.estado.replace('_', ' ')}
+                color={selectedMotor ? (getEstadoColor(selectedMotor.estado) as any) : 'default'}
                 sx={{ textTransform: 'capitalize' }}
               />
             </Box>
@@ -1641,7 +1864,7 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
             <Tab label="Edición" />
             <Tab label="Descargas" />
           </Tabs>
-          
+
           <Box sx={{ mt: 3 }}>
             {/* Pestaña: Información General */}
             {tabValue === 0 && selectedMotor && (
@@ -1653,32 +1876,45 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Marca</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Marca
+                        </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                           {selectedMotor.marca}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Modelo</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Modelo
+                        </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                           {selectedMotor.modelo}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Número de Serie</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Número de Serie
+                        </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                           {selectedMotor.numeroSerie}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Año</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Año
+                        </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                           {selectedMotor.anio}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Tipo</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'medium', textTransform: 'capitalize' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Tipo
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{ fontWeight: 'medium', textTransform: 'capitalize' }}
+                        >
                           {selectedMotor.tipo.replace('_', ' ')}
                         </Typography>
                       </Box>
@@ -1692,27 +1928,38 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Línea de Metro</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Línea de Metro
+                        </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                           {selectedMotor.lineaMetro}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Número de Formación</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Número de Formación
+                        </Typography>
                         <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                           {selectedMotor.numeroFormacion}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Tipo de Formación</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'medium', textTransform: 'capitalize' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Tipo de Formación
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{ fontWeight: 'medium', textTransform: 'capitalize' }}
+                        >
                           {selectedMotor.tipoFormacion}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Estado</Typography>
-                        <Chip 
-                          label={selectedMotor.estado.replace('_', ' ')} 
+                        <Typography variant="body2" color="text.secondary">
+                          Estado
+                        </Typography>
+                        <Chip
+                          label={selectedMotor.estado.replace('_', ' ')}
                           color={getEstadoColor(selectedMotor.estado) as any}
                           sx={{ textTransform: 'capitalize' }}
                         />
@@ -1728,8 +1975,13 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
               <Box sx={{ display: 'flex', gap: 3, flexDirection: 'column' }}>
                 {/* Progreso general de diagnósticos */}
                 <Paper sx={{ p: 3, borderRadius: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}
+                    >
                       <Assessment />
                       Progreso de Diagnósticos
                     </Typography>
@@ -1743,33 +1995,40 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                       Reiniciar Diagnósticos
                     </Button>
                   </Box>
-                  
+
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                     <Typography variant="body2" color="text.secondary">
-                      {diagnosticSteps.filter(step => step.estado === 'completado').length} de {diagnosticSteps.length} pasos completados
+                      {diagnosticSteps.filter(step => step.estado === 'completado').length} de{' '}
+                      {diagnosticSteps.length} pasos completados
                     </Typography>
                     <LinearProgress
                       variant="determinate"
-                      value={(diagnosticSteps.filter(step => step.estado === 'completado').length / diagnosticSteps.length) * 100}
+                      value={
+                        (diagnosticSteps.filter(step => step.estado === 'completado').length /
+                          diagnosticSteps.length) *
+                        100
+                      }
                       sx={{ flex: 1, height: 8, borderRadius: 4 }}
                     />
                   </Box>
-                  
+
                   {selectedMotor?.ultimoDiagnostico && (
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Último diagnóstico: {new Date(selectedMotor.ultimoDiagnostico).toLocaleString()}
+                      Último diagnóstico:{' '}
+                      {new Date(selectedMotor.ultimoDiagnostico).toLocaleString()}
                     </Typography>
                   )}
-                  
-                  {diagnosticSteps.filter(step => step.estado === 'completado').length === diagnosticSteps.length && (
-                    <Chip 
-                      label="Diagnóstico Completado" 
-                      color="success" 
+
+                  {diagnosticSteps.filter(step => step.estado === 'completado').length ===
+                    diagnosticSteps.length && (
+                    <Chip
+                      label="Diagnóstico Completado"
+                      color="success"
                       icon={<CheckCircle />}
                       sx={{ mb: 1 }}
                     />
                   )}
-                  
+
                   <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                     💾 Los diagnósticos se guardan automáticamente
                   </Typography>
@@ -1806,10 +2065,14 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                                   <strong>Resultado:</strong> {step.resultado}
                                 </Typography>
                                 <Typography variant="body2" sx={{ mb: 1 }}>
-                                  <strong>Fecha:</strong> {step.fechaEjecucion ? new Date(step.fechaEjecucion).toLocaleString() : 'No ejecutado'}
+                                  <strong>Fecha:</strong>{' '}
+                                  {step.fechaEjecucion
+                                    ? new Date(step.fechaEjecucion).toLocaleString()
+                                    : 'No ejecutado'}
                                 </Typography>
                                 <Typography variant="body2" sx={{ mb: 1 }}>
-                                  <strong>Técnico:</strong> {step.tecnicoResponsable || 'No asignado'}
+                                  <strong>Técnico:</strong>{' '}
+                                  {step.tecnicoResponsable || 'No asignado'}
                                 </Typography>
                                 {step.observaciones && (
                                   <Typography variant="body2" sx={{ mb: 1 }}>
@@ -1817,117 +2080,142 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                                   </Typography>
                                 )}
                                 {step.requiereMantenimiento && (
-                                  <Chip 
-                                    label={`Requiere Mantenimiento ${step.tipoMantenimiento || 'Correctivo'}`}
+                                  <Chip
+                                    label={`Requiere Mantenimiento ${
+                                      step.tipoMantenimiento || 'Correctivo'
+                                    }`}
                                     color="warning"
                                     size="small"
                                   />
                                 )}
                               </Box>
-                                                         ) : (
-                               <Box>
-                                 <Typography variant="body2" sx={{ mb: 2 }}>
-                                   Estado: {step.estado}
-                                 </Typography>
-                                 
-                                 {/* Botones para iniciar y completar */}
-                                 {completingStep !== step.id ? (
-                                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                     <Button
-                                       size="small"
-                                       variant="outlined"
-                                       color="info"
-                                       onClick={() => updateDiagnosticStep(step.id, { estado: 'en_proceso' })}
-                                       disabled={step.estado === 'en_proceso'}
-                                     >
-                                       Iniciar
-                                     </Button>
-                                     <Button
-                                       size="small"
-                                       variant="contained"
-                                       color="success"
-                                       onClick={() => setCompletingStep(step.id)}
-                                       disabled={step.estado !== 'en_proceso'}
-                                     >
-                                       Completar (OK)
-                                     </Button>
-                                     <Button
-                                       size="small"
-                                       variant="contained"
-                                       color="warning"
-                                       onClick={() => setCompletingStep(step.id)}
-                                       disabled={step.estado !== 'en_proceso'}
-                                     >
-                                       Requiere Atención
-                                     </Button>
-                                     <Button
-                                       size="small"
-                                       variant="contained"
-                                       color="error"
-                                       onClick={() => setCompletingStep(step.id)}
-                                       disabled={step.estado !== 'en_proceso'}
-                                     >
-                                       Crítico
-                                     </Button>
-                                   </Box>
-                                 ) : (
-                                   /* Formulario para ingresar comentarios */
-                                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                     <TextField
-                                       label="Comentario Obligatorio"
-                                       placeholder="Ingrese sus observaciones sobre este paso del diagnóstico..."
-                                       value={stepComments[step.id] || ''}
-                                       onChange={(e) => handleCommentChange(step.id, e.target.value)}
-                                       multiline
-                                       rows={3}
-                                       fullWidth
-                                       required
-                                       error={!stepComments[step.id] || stepComments[step.id].trim() === ''}
-                                       helperText={(!stepComments[step.id] || stepComments[step.id].trim() === '') ? 'El comentario es obligatorio' : ''}
-                                     />
-                                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                       <Button
-                                         size="small"
-                                         variant="contained"
-                                         color="success"
-                                         onClick={() => completeDiagnosticStep(step.id, 'satisfactorio')}
-                                         disabled={!stepComments[step.id] || stepComments[step.id].trim() === ''}
-                                       >
-                                         ✓ Satisfactorio
-                                       </Button>
-                                       <Button
-                                         size="small"
-                                         variant="contained"
-                                         color="warning"
-                                         onClick={() => completeDiagnosticStep(step.id, 'requiere_atencion')}
-                                         disabled={!stepComments[step.id] || stepComments[step.id].trim() === ''}
-                                       >
-                                         ⚠ Requiere Atención
-                                       </Button>
-                                       <Button
-                                         size="small"
-                                         variant="contained"
-                                         color="error"
-                                         onClick={() => completeDiagnosticStep(step.id, 'critico')}
-                                         disabled={!stepComments[step.id] || stepComments[step.id].trim() === ''}
-                                       >
-                                         ⚠ Crítico
-                                       </Button>
-                                       <Button
-                                         size="small"
-                                         variant="outlined"
-                                         onClick={() => {
-                                           setCompletingStep(null);
-                                           setStepComments(prev => ({ ...prev, [step.id]: '' }));
-                                         }}
-                                       >
-                                         Cancelar
-                                       </Button>
-                                     </Box>
-                                   </Box>
-                                 )}
-                               </Box>
-                             )}
+                            ) : (
+                              <Box>
+                                <Typography variant="body2" sx={{ mb: 2 }}>
+                                  Estado: {step.estado}
+                                </Typography>
+
+                                {/* Botones para iniciar y completar */}
+                                {completingStep !== step.id ? (
+                                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="info"
+                                      onClick={() =>
+                                        updateDiagnosticStep(step.id, { estado: 'en_proceso' })
+                                      }
+                                      disabled={step.estado === 'en_proceso'}
+                                    >
+                                      Iniciar
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="contained"
+                                      color="success"
+                                      onClick={() => setCompletingStep(step.id)}
+                                      disabled={step.estado !== 'en_proceso'}
+                                    >
+                                      Completar (OK)
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="contained"
+                                      color="warning"
+                                      onClick={() => setCompletingStep(step.id)}
+                                      disabled={step.estado !== 'en_proceso'}
+                                    >
+                                      Requiere Atención
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="contained"
+                                      color="error"
+                                      onClick={() => setCompletingStep(step.id)}
+                                      disabled={step.estado !== 'en_proceso'}
+                                    >
+                                      Crítico
+                                    </Button>
+                                  </Box>
+                                ) : (
+                                  /* Formulario para ingresar comentarios */
+                                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <TextField
+                                      label="Comentario Obligatorio"
+                                      placeholder="Ingrese sus observaciones sobre este paso del diagnóstico..."
+                                      value={stepComments[step.id] || ''}
+                                      onChange={e => handleCommentChange(step.id, e.target.value)}
+                                      multiline
+                                      rows={3}
+                                      fullWidth
+                                      required
+                                      error={
+                                        !stepComments[step.id] ||
+                                        stepComments[step.id].trim() === ''
+                                      }
+                                      helperText={
+                                        !stepComments[step.id] ||
+                                        stepComments[step.id].trim() === ''
+                                          ? 'El comentario es obligatorio'
+                                          : ''
+                                      }
+                                    />
+                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                      <Button
+                                        size="small"
+                                        variant="contained"
+                                        color="success"
+                                        onClick={() =>
+                                          completeDiagnosticStep(step.id, 'satisfactorio')
+                                        }
+                                        disabled={
+                                          !stepComments[step.id] ||
+                                          stepComments[step.id].trim() === ''
+                                        }
+                                      >
+                                        ✓ Satisfactorio
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        variant="contained"
+                                        color="warning"
+                                        onClick={() =>
+                                          completeDiagnosticStep(step.id, 'requiere_atencion')
+                                        }
+                                        disabled={
+                                          !stepComments[step.id] ||
+                                          stepComments[step.id].trim() === ''
+                                        }
+                                      >
+                                        ⚠ Requiere Atención
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        variant="contained"
+                                        color="error"
+                                        onClick={() => completeDiagnosticStep(step.id, 'critico')}
+                                        disabled={
+                                          !stepComments[step.id] ||
+                                          stepComments[step.id].trim() === ''
+                                        }
+                                      >
+                                        ⚠ Crítico
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={() => {
+                                          setCompletingStep(null);
+                                          setStepComments(prev => ({ ...prev, [step.id]: '' }));
+                                        }}
+                                      >
+                                        Cancelar
+                                      </Button>
+                                    </Box>
+                                  </Box>
+                                )}
+                              </Box>
+                            )}
                           </Box>
                         </StepContent>
                       </Step>
@@ -1941,23 +2229,32 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                     Resumen de Diagnóstico
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                    <Chip 
-                      label={`${diagnosticSteps.filter(step => step.resultado === 'satisfactorio').length} Satisfactorios`}
+                    <Chip
+                      label={`${
+                        diagnosticSteps.filter(step => step.resultado === 'satisfactorio').length
+                      } Satisfactorios`}
                       color="success"
                       variant="outlined"
                     />
-                    <Chip 
-                      label={`${diagnosticSteps.filter(step => step.resultado === 'requiere_atencion').length} Requieren Atención`}
+                    <Chip
+                      label={`${
+                        diagnosticSteps.filter(step => step.resultado === 'requiere_atencion')
+                          .length
+                      } Requieren Atención`}
                       color="warning"
                       variant="outlined"
                     />
-                    <Chip 
-                      label={`${diagnosticSteps.filter(step => step.resultado === 'critico').length} Críticos`}
+                    <Chip
+                      label={`${
+                        diagnosticSteps.filter(step => step.resultado === 'critico').length
+                      } Críticos`}
                       color="error"
                       variant="outlined"
                     />
-                    <Chip 
-                      label={`${diagnosticSteps.filter(step => step.requiereMantenimiento).length} Requieren Mantenimiento`}
+                    <Chip
+                      label={`${
+                        diagnosticSteps.filter(step => step.requiereMantenimiento).length
+                      } Requieren Mantenimiento`}
                       color="info"
                       variant="outlined"
                     />
@@ -1977,25 +2274,36 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Potencia</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Potencia
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {selectedMotor.potencia}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Voltaje</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Voltaje
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {selectedMotor.voltaje}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Kilometraje</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium', color: '#1e3a8a' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Kilometraje
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 'medium', color: '#1e3a8a' }}
+                          >
                             {selectedMotor.kilometrosRecorridos.toLocaleString()} km
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Horas de Operación</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Horas de Operación
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {selectedMotor.horasOperacion.toLocaleString()} hrs
                           </Typography>
@@ -2010,19 +2318,25 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Nombre</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Nombre
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {selectedMotor.responsableTecnico}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Email</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Email
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {selectedMotor.emailResponsable}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Teléfono</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Teléfono
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {selectedMotor.telefonoResponsable}
                           </Typography>
@@ -2047,40 +2361,62 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
               <Box sx={{ display: 'flex', gap: 3, flexDirection: 'column' }}>
                 {/* Mantenimientos Generados del Diagnóstico */}
                 <Paper sx={{ p: 3, borderRadius: 2 }}>
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography
+                    variant="h6"
+                    gutterBottom
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                  >
                     <Build />
                     Mantenimientos Generados del Diagnóstico
                   </Typography>
-                  
+
                   {maintenanceTasks.length > 0 ? (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {maintenanceTasks.map((task) => (
-                        <Paper key={task.id} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      {maintenanceTasks.map(task => (
+                        <Paper
+                          key={task.id}
+                          sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}
+                        >
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'flex-start',
+                              mb: 1,
+                            }}
+                          >
                             <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
                               {task.titulo}
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
-                              <Chip 
-                                label={task.prioridad} 
+                              <Chip
+                                label={task.prioridad}
                                 color={getPriorityColor(task.prioridad) as any}
                                 size="small"
                                 sx={{ textTransform: 'capitalize' }}
                               />
-                              <Chip 
-                                label={task.estado} 
+                              <Chip
+                                label={task.estado}
                                 color={getMaintenanceStatusColor(task.estado) as any}
                                 size="small"
                                 sx={{ textTransform: 'capitalize' }}
                               />
                             </Box>
                           </Box>
-                          
+
                           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                             {task.descripcion}
                           </Typography>
-                          
-                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 1 }}>
+
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              gap: 2,
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              mb: 1,
+                            }}
+                          >
                             <Typography variant="body2">
                               <strong>Tipo:</strong> {task.tipo}
                             </Typography>
@@ -2088,16 +2424,20 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                               <strong>Origen:</strong> {task.pasoOriginal}
                             </Typography>
                             <Typography variant="body2">
-                              <strong>Creado:</strong> {new Date(task.fechaCreacion).toLocaleDateString()}
+                              <strong>Creado:</strong>{' '}
+                              {new Date(task.fechaCreacion).toLocaleDateString()}
                             </Typography>
                             {task.fechaEstimada && (
                               <Typography variant="body2">
-                                <strong>Estimado:</strong> {new Date(task.fechaEstimada).toLocaleDateString()}
+                                <strong>Estimado:</strong>{' '}
+                                {new Date(task.fechaEstimada).toLocaleDateString()}
                               </Typography>
                             )}
                           </Box>
-                          
-                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+
+                          <Box
+                            sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}
+                          >
                             <Typography variant="body2">
                               <strong>Técnico:</strong> {task.tecnicoAsignado}
                             </Typography>
@@ -2107,7 +2447,9 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                                   size="small"
                                   variant="outlined"
                                   color="info"
-                                  onClick={() => updateMaintenanceTask(task.id, { estado: 'en_proceso' })}
+                                  onClick={() =>
+                                    updateMaintenanceTask(task.id, { estado: 'en_proceso' })
+                                  }
                                 >
                                   Iniciar
                                 </Button>
@@ -2115,7 +2457,9 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                                   size="small"
                                   variant="contained"
                                   color="success"
-                                  onClick={() => completeMaintenanceTask(task.id, 'Completado desde diagnóstico')}
+                                  onClick={() =>
+                                    completeMaintenanceTask(task.id, 'Completado desde diagnóstico')
+                                  }
                                 >
                                   Completar
                                 </Button>
@@ -2126,14 +2470,17 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                                 size="small"
                                 variant="contained"
                                 color="success"
-                                onClick={() => completeMaintenanceTask(task.id, 'Completado desde diagnóstico')}
+                                onClick={() =>
+                                  completeMaintenanceTask(task.id, 'Completado desde diagnóstico')
+                                }
                               >
                                 Completar
                               </Button>
                             )}
                             {task.estado === 'completado' && task.fechaCompletado && (
                               <Typography variant="body2" color="success.main">
-                                <strong>Completado:</strong> {new Date(task.fechaCompletado).toLocaleDateString()}
+                                <strong>Completado:</strong>{' '}
+                                {new Date(task.fechaCompletado).toLocaleDateString()}
                               </Typography>
                             )}
                           </Box>
@@ -2141,10 +2488,15 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                       ))}
                     </Box>
                   ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ textAlign: 'center', py: 3 }}
+                    >
                       No hay mantenimientos generados desde el diagnóstico.
                       <br />
-                      Los mantenimientos se generan automáticamente cuando un paso del diagnóstico requiere atención.
+                      Los mantenimientos se generan automáticamente cuando un paso del diagnóstico
+                      requiere atención.
                     </Typography>
                   )}
                 </Paper>
@@ -2158,21 +2510,35 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Último Mantenimiento</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Último Mantenimiento
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {new Date(selectedMotor.ultimoMantenimiento).toLocaleDateString()}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Próximo Mantenimiento</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Próximo Mantenimiento
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {new Date(selectedMotor.proximoMantenimiento).toLocaleDateString()}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Días Restantes</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium', color: '#1e3a8a' }}>
-                            {Math.ceil((new Date(selectedMotor.proximoMantenimiento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} días
+                          <Typography variant="body2" color="text.secondary">
+                            Días Restantes
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 'medium', color: '#1e3a8a' }}
+                          >
+                            {Math.ceil(
+                              (new Date(selectedMotor.proximoMantenimiento).getTime() -
+                                new Date().getTime()) /
+                                (1000 * 60 * 60 * 24),
+                            )}{' '}
+                            días
                           </Typography>
                         </Box>
                       </Box>
@@ -2185,20 +2551,32 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                       </Typography>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Total de Mantenimientos</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Total de Mantenimientos
+                          </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                             {maintenanceTasks.length}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Pendientes</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium', color: '#ff9800' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Pendientes
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 'medium', color: '#ff9800' }}
+                          >
                             {maintenanceTasks.filter(t => t.estado === 'pendiente').length}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Completados</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 'medium', color: '#4caf50' }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Completados
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: 'medium', color: '#4caf50' }}
+                          >
                             {maintenanceTasks.filter(t => t.estado === 'completado').length}
                           </Typography>
                         </Box>
@@ -2212,67 +2590,159 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                   <Typography variant="h6" gutterBottom>
                     Historial de Mantenimientos
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 400, overflowY: 'auto' }}>
-                    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, borderLeft: '4px solid #1e3a8a' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1e3a8a', mb: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                      maxHeight: 400,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #1e3a8a',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold', color: '#1e3a8a', mb: 1 }}
+                      >
                         Ing. Carlos Mendoza - 15/01/2024 - 14:30
                       </Typography>
                       <Typography variant="body2">
-                        Se realiza diagnóstico completo de 5 pasos: inspección visual, verificación eléctrica, pruebas de rendimiento, análisis de vibraciones y actualización de firmware. Motor en estado óptimo.
+                        Se realiza diagnóstico completo de 5 pasos: inspección visual, verificación
+                        eléctrica, pruebas de rendimiento, análisis de vibraciones y actualización
+                        de firmware. Motor en estado óptimo.
                       </Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, borderLeft: '4px solid #059669' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#059669', mb: 1 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #059669',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold', color: '#059669', mb: 1 }}
+                      >
                         Téc. Ana Rodríguez - 28/12/2023 - 09:15
                       </Typography>
                       <Typography variant="body2">
-                        Se realiza mantenimiento preventivo del sistema de tracción eléctrica. Cambio de carbones, limpieza de contactores y lubricación de rodamientos. Pruebas de funcionamiento exitosas.
+                        Se realiza mantenimiento preventivo del sistema de tracción eléctrica.
+                        Cambio de carbones, limpieza de contactores y lubricación de rodamientos.
+                        Pruebas de funcionamiento exitosas.
                       </Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, borderLeft: '4px solid #d97706' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#d97706', mb: 1 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #d97706',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold', color: '#d97706', mb: 1 }}
+                      >
                         Ing. Luis García - 10/12/2023 - 16:45
                       </Typography>
                       <Typography variant="body2">
-                        Reemplazo de componentes del sistema de frenado regenerativo. Se detectó desgaste en pastillas de freno y se procedió al cambio. Calibración de parámetros de frenado completada.
+                        Reemplazo de componentes del sistema de frenado regenerativo. Se detectó
+                        desgaste en pastillas de freno y se procedió al cambio. Calibración de
+                        parámetros de frenado completada.
                       </Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, borderLeft: '4px solid #6366f1' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#6366f1', mb: 1 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #6366f1',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold', color: '#6366f1', mb: 1 }}
+                      >
                         Téc. María González - 25/11/2023 - 11:20
                       </Typography>
                       <Typography variant="body2">
-                        Inspección programada de 10,000 km. Revisión de conexiones eléctricas, verificación de torques, análisis de aceites y pruebas de aislamiento. Todas las mediciones dentro de parámetros normales.
+                        Inspección programada de 10,000 km. Revisión de conexiones eléctricas,
+                        verificación de torques, análisis de aceites y pruebas de aislamiento. Todas
+                        las mediciones dentro de parámetros normales.
                       </Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, borderLeft: '4px solid #dc2626' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#dc2626', mb: 1 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #dc2626',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold', color: '#dc2626', mb: 1 }}
+                      >
                         Ing. Roberto Martínez - 08/11/2023 - 13:00
                       </Typography>
                       <Typography variant="body2">
-                        Reparación correctiva por falla en sensor de temperatura. Se identificó cable dañado en el arnés principal. Reemplazo de sensor y reparación de cableado. Motor operativo tras pruebas.
+                        Reparación correctiva por falla en sensor de temperatura. Se identificó
+                        cable dañado en el arnés principal. Reemplazo de sensor y reparación de
+                        cableado. Motor operativo tras pruebas.
                       </Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, borderLeft: '4px solid #059669' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#059669', mb: 1 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #059669',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold', color: '#059669', mb: 1 }}
+                      >
                         Téc. Pedro Sánchez - 20/10/2023 - 08:30
                       </Typography>
                       <Typography variant="body2">
-                        Mantenimiento mayor programado: desmontaje parcial, limpieza profunda de ventiladores, reemplazo de filtros, actualización de software de control y pruebas de rendimiento. Duración: 6 horas.
+                        Mantenimiento mayor programado: desmontaje parcial, limpieza profunda de
+                        ventiladores, reemplazo de filtros, actualización de software de control y
+                        pruebas de rendimiento. Duración: 6 horas.
                       </Typography>
                     </Box>
 
-                    <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 1, borderLeft: '4px solid #1e3a8a' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1e3a8a', mb: 1 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: '#f8f9fa',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #1e3a8a',
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 'bold', color: '#1e3a8a', mb: 1 }}
+                      >
                         Ing. Carmen López - 05/10/2023 - 15:10
                       </Typography>
                       <Typography variant="body2">
-                        Diagnóstico de ruido anormal reportado por operador. Se detectó desgaste en rodamiento auxiliar. Programación de cambio para próximo mantenimiento preventivo. Motor autorizado para operación.
+                        Diagnóstico de ruido anormal reportado por operador. Se detectó desgaste en
+                        rodamiento auxiliar. Programación de cambio para próximo mantenimiento
+                        preventivo. Motor autorizado para operación.
                       </Typography>
                     </Box>
                   </Box>
@@ -2282,7 +2752,15 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
 
             {/* Pestaña: Edición */}
             {tabValue === 4 && (
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, py: 4 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 3,
+                  py: 4,
+                }}
+              >
                 <Typography variant="h6">Editar Motor</Typography>
                 <Typography variant="body1" color="text.secondary" align="center">
                   Haz clic en el botón de abajo para abrir el formulario de edición
@@ -2333,7 +2811,13 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                     <Button
                       variant="outlined"
                       startIcon={<GetApp />}
-                      onClick={() => setSnackbar({ open: true, message: 'Ficha técnica descargada', severity: 'success' })}
+                      onClick={() =>
+                        setSnackbar({
+                          open: true,
+                          message: 'Ficha técnica descargada',
+                          severity: 'success',
+                        })
+                      }
                     >
                       Descargar
                     </Button>
@@ -2384,7 +2868,13 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
                     <Button
                       variant="outlined"
                       startIcon={<GetApp />}
-                      onClick={() => setSnackbar({ open: true, message: 'Historial de mantenimiento descargado', severity: 'success' })}
+                      onClick={() =>
+                        setSnackbar({
+                          open: true,
+                          message: 'Historial de mantenimiento descargado',
+                          severity: 'success',
+                        })
+                      }
                     >
                       Descargar
                     </Button>
@@ -2396,13 +2886,112 @@ const MotorModule: React.FC<MotorModuleProps> = ({ selectedMotorId, onClearSelec
         </DialogContent>
       </Dialog>
 
+      {/* Modal para solicitar datos del plan de trabajo */}
+      <Dialog open={workPlanModalOpen} onClose={handleCloseWorkPlanModal} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Description sx={{ color: '#1e3a8a' }} />
+            <Typography variant="h6">Generar Plan de Trabajo</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
+            Ingresa los objetivos y descripción para personalizar el plan de trabajo de{' '}
+            <strong>
+              {selectedMotor?.marca} {selectedMotor?.modelo}
+            </strong>
+          </Typography>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <TextField
+              label="Objetivos del Plan de Trabajo"
+              placeholder="Ej: Realizar mantenimiento preventivo, verificar estado de componentes críticos..."
+              value={workPlanData.objetivos}
+              onChange={e => handleWorkPlanInputChange('objetivos', e.target.value)}
+              fullWidth
+              multiline
+              rows={4}
+              required
+              error={!workPlanData.objetivos}
+              helperText={!workPlanData.objetivos ? 'Los objetivos son obligatorios' : ''}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1e3a8a',
+                    },
+                  },
+                },
+              }}
+            />
+
+            <TextField
+              label="Descripción Detallada"
+              placeholder="Ej: Inspección completa del motor, revisión de sistemas eléctricos, cambio de filtros..."
+              value={workPlanData.descripcion}
+              onChange={e => handleWorkPlanInputChange('descripcion', e.target.value)}
+              fullWidth
+              multiline
+              rows={6}
+              required
+              error={!workPlanData.descripcion}
+              helperText={!workPlanData.descripcion ? 'La descripción es obligatoria' : ''}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1e3a8a',
+                    },
+                  },
+                },
+              }}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              mt: 3,
+              p: 2,
+              backgroundColor: '#f8f9fa',
+              borderRadius: 2,
+              border: '1px solid #e9ecef',
+            }}
+          >
+            <Typography variant="body2" sx={{ color: '#1e3a8a', fontWeight: 'medium' }}>
+              💡 Tip: Estos datos se incluirán en el PDF del plan de trabajo para personalizar el
+              documento.
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseWorkPlanModal} sx={{ color: '#666' }}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleGenerateWorkPlan}
+            variant="contained"
+            startIcon={<Download />}
+            disabled={!workPlanData.objetivos || !workPlanData.descripcion}
+            sx={{
+              backgroundColor: '#1e3a8a',
+              '&:hover': { backgroundColor: '#1e40af' },
+            }}
+          >
+            Generar Plan de Trabajo
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

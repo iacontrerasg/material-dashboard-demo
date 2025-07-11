@@ -23,7 +23,7 @@ import {
   Snackbar,
   Alert,
   Fab,
-  InputAdornment
+  InputAdornment,
 } from '@mui/material';
 import {
   Add,
@@ -32,30 +32,37 @@ import {
   Search,
   Business,
   Build,
-  VisibilityOutlined
+  VisibilityOutlined,
+  ElectricBolt,
+  Engineering,
+  Train,
 } from '@mui/icons-material';
 import { Project } from '../types';
 
 interface ProjectModuleProps {
-  onNavigateToMotor: (motorId: string) => void;
   selectedProjectId?: string | null;
   onClearSelectedProject?: () => void;
+  onNavigateToMotors?: (projectId: string, motorId?: string) => void;
 }
 
-const ProjectModule: React.FC<ProjectModuleProps> = ({ 
-  onNavigateToMotor, 
-  selectedProjectId, 
-  onClearSelectedProject 
+const ProjectModule: React.FC<ProjectModuleProps> = ({
+  selectedProjectId,
+  onClearSelectedProject,
+  onNavigateToMotors,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
   const [motorModalOpen, setMotorModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  
+
   // Form states
   const [formData, setFormData] = useState({
     clientName: '',
@@ -63,381 +70,107 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
     clientPhone: '',
     serviceName: '',
     serviceDescription: '',
+    tipo: 'motores' as Project['tipo'],
     amount: '',
     startDate: '',
     endDate: '',
-    status: 'pendiente' as Project['status']
+    status: 'pendiente' as Project['status'],
   });
 
   // Cargar proyectos de ejemplo al iniciar
   useEffect(() => {
     const sampleProjects: Project[] = [
       {
-        id: '20240001',
-        clientName: 'Metro CDMX',
-        clientEmail: 'linea1@metro.com',
-        clientPhone: '+52 555 1234567',
-        serviceName: 'Modernización Sistema Eléctrico Línea 1',
-        serviceDescription: 'Modernización completa del sistema eléctrico de la línea 1',
-        amount: 250000,
-        startDate: '2024-01-15',
-        endDate: '2024-03-15',
+        id: 'STC-GACS-CNCS-119/2024',
+        clientName: 'Sistema de Transporte Colectivo (STC)',
+        clientEmail: 'mantenimiento@stc.gob.mx',
+        clientPhone: '+52 55 5627 4900',
+        serviceName: 'Mantenimiento a Motores Eléctricos',
+        serviceDescription: 'Mantenimiento a Motores Eléctricos',
+        tipo: 'motores',
+        amount: 3500000,
+        startDate: '2024-03-01',
+        endDate: '2024-12-31',
         status: 'activo',
-        createdAt: '2024-01-01',
-        associatedMotors: [
-          {
-            id: '1',
-            marca: 'Siemens',
-            modelo: 'Velaro MS',
-            numeroSerie: 'SIE789456123',
-            tipo: 'electrico',
-            potencia: '6400 kW',
-            voltaje: '25000 V',
-            anio: 2020,
-            lineaMetro: 'Línea 1',
-            numeroFormacion: 'F-101',
-            tipoFormacion: 'cabeza',
-            responsableTecnico: 'Carlos Mendoza',
-            emailResponsable: 'carlos.mendoza@metro.com',
-            telefonoResponsable: '+52 555 1111111',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-01-15',
-            proximoMantenimiento: '2024-07-15',
-            kilometrosRecorridos: 145000,
-            horasOperacion: 2250,
-            observaciones: 'Mantenimiento preventivo programado',
-            creadoEn: '2024-01-01'
-          },
-          {
-            id: '2',
-            marca: 'Siemens',
-            modelo: 'Velaro MS',
-            numeroSerie: 'SIE789456124',
-            tipo: 'electrico',
-            potencia: '6400 kW',
-            voltaje: '25000 V',
-            anio: 2020,
-            lineaMetro: 'Línea 1',
-            numeroFormacion: 'F-102',
-            tipoFormacion: 'intermedio',
-            responsableTecnico: 'Carlos Mendoza',
-            emailResponsable: 'carlos.mendoza@metro.com',
-            telefonoResponsable: '+52 555 1111111',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-01-10',
-            proximoMantenimiento: '2024-07-10',
-            kilometrosRecorridos: 138000,
-            horasOperacion: 2180,
-            observaciones: 'Funcionamiento óptimo',
-            creadoEn: '2024-01-01'
-          }
-        ]
-      },
-      {
-        id: '20240002',
-        clientName: 'Metro CDMX',
-        clientEmail: 'linea2@metro.com',
-        clientPhone: '+52 555 2345678',
-        serviceName: 'Mantenimiento Preventivo Línea 2',
-        serviceDescription: 'Mantenimiento preventivo integral de la línea 2',
-        amount: 180000,
-        startDate: '2024-02-01',
-        endDate: '2024-04-01',
-        status: 'pendiente',
-        createdAt: '2024-01-20',
-        associatedMotors: [
-          {
-            id: '3',
-            marca: 'Alstom',
-            modelo: 'Metropolis',
-            numeroSerie: 'ALS321654987',
-            tipo: 'traccion_electrica',
-            potencia: '1600 kW',
-            voltaje: '750 V',
-            anio: 2019,
-            lineaMetro: 'Línea 2',
-            numeroFormacion: 'F-205',
-            tipoFormacion: 'intermedio',
-            responsableTecnico: 'Ana Rodríguez',
-            emailResponsable: 'ana.rodriguez@metro.com',
-            telefonoResponsable: '+52 555 2222222',
-            estado: 'requiere_mantenimiento',
-            ultimoMantenimiento: '2023-12-01',
-            proximoMantenimiento: '2024-02-01',
-            kilometrosRecorridos: 278000,
-            horasOperacion: 3900,
-            observaciones: 'Revisar sistema de frenado regenerativo',
-            creadoEn: '2023-11-15'
-          },
-          {
-            id: '4',
-            marca: 'Alstom',
-            modelo: 'Metropolis',
-            numeroSerie: 'ALS321654988',
-            tipo: 'traccion_electrica',
-            potencia: '1600 kW',
-            voltaje: '750 V',
-            anio: 2019,
-            lineaMetro: 'Línea 2',
-            numeroFormacion: 'F-206',
-            tipoFormacion: 'cola',
-            responsableTecnico: 'Ana Rodríguez',
-            emailResponsable: 'ana.rodriguez@metro.com',
-            telefonoResponsable: '+52 555 2222222',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-01-05',
-            proximoMantenimiento: '2024-04-05',
-            kilometrosRecorridos: 265000,
-            horasOperacion: 3720,
-            observaciones: 'Revisión mensual completada',
-            creadoEn: '2023-11-15'
-          }
-        ]
-      },
-      {
-        id: '20240003',
-        clientName: 'Metro CDMX',
-        clientEmail: 'linea3@metro.com',
-        clientPhone: '+52 555 3456789',
-        serviceName: 'Instalación Sistema Seguridad Línea 3',
-        serviceDescription: 'Instalación de sistemas de seguridad avanzados',
-        amount: 320000,
-        startDate: '2024-01-10',
-        endDate: '2024-05-10',
-        status: 'activo',
-        createdAt: '2024-01-01',
-        associatedMotors: [
-          {
-            id: '5',
-            marca: 'CAF',
-            modelo: 'Urbos',
-            numeroSerie: 'CAF555777999',
-            tipo: 'diesel_electrico',
-            potencia: '2400 kW',
-            voltaje: '1500 V',
-            anio: 2022,
-            lineaMetro: 'Línea 3',
-            numeroFormacion: 'F-312',
-            tipoFormacion: 'cola',
-            responsableTecnico: 'Luis García',
-            emailResponsable: 'luis.garcia@metro.com',
-            telefonoResponsable: '+52 555 3333333',
-            estado: 'en_mantenimiento',
-            ultimoMantenimiento: '2024-01-20',
-            proximoMantenimiento: '2024-08-20',
-            kilometrosRecorridos: 95000,
-            horasOperacion: 1250,
-            observaciones: 'Actualización de sistema de control',
-            creadoEn: '2024-01-05'
-          },
-          {
-            id: '6',
-            marca: 'CAF',
-            modelo: 'Urbos',
-            numeroSerie: 'CAF555778000',
-            tipo: 'diesel_electrico',
-            potencia: '2400 kW',
-            voltaje: '1500 V',
-            anio: 2022,
-            lineaMetro: 'Línea 3',
-            numeroFormacion: 'F-313',
-            tipoFormacion: 'cabeza',
-            responsableTecnico: 'Luis García',
-            emailResponsable: 'luis.garcia@metro.com',
-            telefonoResponsable: '+52 555 3333333',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-01-18',
-            proximoMantenimiento: '2024-08-18',
-            kilometrosRecorridos: 92000,
-            horasOperacion: 1180,
-            observaciones: 'Sistema de seguridad instalado',
-            creadoEn: '2024-01-05'
-          }
-        ]
-      },
-      {
-        id: '20240004',
-        clientName: 'Metro CDMX',
-        clientEmail: 'linea4@metro.com',
-        clientPhone: '+52 555 4567890',
-        serviceName: 'Reparación Motores Tracción Línea 4',
-        serviceDescription: 'Reparación especializada de motores de tracción',
-        amount: 190000,
-        startDate: '2024-01-25',
-        endDate: '2024-04-25',
-        status: 'activo',
-        createdAt: '2024-01-20',
+        createdAt: '2024-02-15',
         associatedMotors: [
           {
             id: '7',
-            marca: 'Bombardier',
-            modelo: 'Regina',
-            numeroSerie: 'BOM445678901',
-            tipo: 'traccion_electrica',
-            potencia: '1800 kW',
-            voltaje: '1000 V',
-            anio: 2021,
-            lineaMetro: 'Línea 4',
-            numeroFormacion: 'F-401',
+            marca: 'INDUCTANCIA',
+            modelo: 'MSL',
+            numeroSerie: 'C312569',
+            tipo: 'electrico',
+            potencia: '2500 kW',
+            voltaje: '1500 V',
+            anio: 2018,
+            lineaMetro: 'Línea 1',
+            numeroFormacion: 'MSL-001',
             tipoFormacion: 'cabeza',
-            responsableTecnico: 'María Fernández',
-            emailResponsable: 'maria.fernandez@metro.com',
-            telefonoResponsable: '+52 555 4444444',
-            estado: 'requiere_mantenimiento',
-            ultimoMantenimiento: '2023-11-25',
-            proximoMantenimiento: '2024-02-25',
-            kilometrosRecorridos: 185000,
-            horasOperacion: 2850,
-            observaciones: 'Revisión mayor de motores de tracción',
-            creadoEn: '2024-01-20'
+            responsableTecnico: 'Ing. Roberto Sánchez',
+            emailResponsable: 'roberto.sanchez@stc.gob.mx',
+            telefonoResponsable: '+52 555 3003003',
+            estado: 'en_mantenimiento',
+            ultimoMantenimiento: '2024-03-01',
+            proximoMantenimiento: '2024-09-01',
+            kilometrosRecorridos: 485000,
+            horasOperacion: 6250,
+            observaciones: 'Inductancia MSL en proceso de mantenimiento mayor',
+            creadoEn: '2024-03-01',
+            projectId: 'STC-GACS-CNCS-119/2024',
+            projectName: 'Mantenimiento a Motores Eléctricos',
           },
           {
             id: '8',
-            marca: 'Bombardier',
-            modelo: 'Regina',
-            numeroSerie: 'BOM445678902',
+            marca: 'MOTOR DE TRACCION',
+            modelo: 'MB-3230',
+            numeroSerie: 'T0037',
             tipo: 'traccion_electrica',
-            potencia: '1800 kW',
-            voltaje: '1000 V',
-            anio: 2021,
-            lineaMetro: 'Línea 4',
-            numeroFormacion: 'F-402',
-            tipoFormacion: 'intermedio',
-            responsableTecnico: 'María Fernández',
-            emailResponsable: 'maria.fernandez@metro.com',
-            telefonoResponsable: '+52 555 4444444',
-            estado: 'en_mantenimiento',
-            ultimoMantenimiento: '2024-01-25',
-            proximoMantenimiento: '2024-04-25',
-            kilometrosRecorridos: 192000,
-            horasOperacion: 2920,
-            observaciones: 'Reparación en progreso',
-            creadoEn: '2024-01-20'
-          }
-        ]
-      },
-      {
-        id: '20240005',
-        clientName: 'Metro CDMX',
-        clientEmail: 'linea5@metro.com',
-        clientPhone: '+52 555 5678901',
-        serviceName: 'Inspección Técnica Línea 5',
-        serviceDescription: 'Inspección técnica detallada de sistemas',
-        amount: 95000,
-        startDate: '2024-01-18',
-        endDate: '2024-03-18',
-        status: 'activo',
-        createdAt: '2024-01-15',
-        associatedMotors: [
+            potencia: '3200 kW',
+            voltaje: '1500 V',
+            anio: 2019,
+            lineaMetro: 'Línea 2',
+            numeroFormacion: 'MB-001',
+            tipoFormacion: 'cabeza',
+            responsableTecnico: 'Ing. Roberto Sánchez',
+            emailResponsable: 'roberto.sanchez@stc.gob.mx',
+            telefonoResponsable: '+52 555 3003003',
+            estado: 'operativo',
+            ultimoMantenimiento: '2024-02-15',
+            proximoMantenimiento: '2024-08-15',
+            kilometrosRecorridos: 420000,
+            horasOperacion: 5800,
+            observaciones: 'Motor de tracción MB-3230 funcionando óptimamente',
+            creadoEn: '2024-03-01',
+            projectId: 'STC-GACS-CNCS-119/2024',
+            projectName: 'Mantenimiento a Motores Eléctricos',
+          },
           {
             id: '9',
-            marca: 'Hitachi',
-            modelo: 'A-Train',
-            numeroSerie: 'HIT667889012',
-            tipo: 'electrico',
-            potencia: '1400 kW',
-            voltaje: '800 V',
-            anio: 2023,
-            lineaMetro: 'Línea 5',
-            numeroFormacion: 'F-501',
+            marca: 'MOTOR DE TRACCION',
+            modelo: 'MP-82',
+            numeroSerie: '67826',
+            tipo: 'traccion_electrica',
+            potencia: '2800 kW',
+            voltaje: '1500 V',
+            anio: 2020,
+            lineaMetro: 'Línea 3',
+            numeroFormacion: 'MP-001',
             tipoFormacion: 'cabeza',
-            responsableTecnico: 'Pedro Martínez',
-            emailResponsable: 'pedro.martinez@metro.com',
-            telefonoResponsable: '+52 555 5555555',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-01-18',
-            proximoMantenimiento: '2024-07-18',
-            kilometrosRecorridos: 45000,
-            horasOperacion: 680,
-            observaciones: 'Inspección técnica completada',
-            creadoEn: '2024-01-15'
+            responsableTecnico: 'Ing. Roberto Sánchez',
+            emailResponsable: 'roberto.sanchez@stc.gob.mx',
+            telefonoResponsable: '+52 555 3003003',
+            estado: 'requiere_mantenimiento',
+            ultimoMantenimiento: '2023-12-10',
+            proximoMantenimiento: '2024-03-10',
+            kilometrosRecorridos: 380000,
+            horasOperacion: 5200,
+            observaciones: 'Motor de tracción MP-82 requiere revisión de rodamientos',
+            creadoEn: '2024-03-01',
+            projectId: 'STC-GACS-CNCS-119/2024',
+            projectName: 'Mantenimiento a Motores Eléctricos',
           },
-          {
-            id: '10',
-            marca: 'Hitachi',
-            modelo: 'A-Train',
-            numeroSerie: 'HIT667889013',
-            tipo: 'electrico',
-            potencia: '1400 kW',
-            voltaje: '800 V',
-            anio: 2023,
-            lineaMetro: 'Línea 5',
-            numeroFormacion: 'F-502',
-            tipoFormacion: 'cola',
-            responsableTecnico: 'Pedro Martínez',
-            emailResponsable: 'pedro.martinez@metro.com',
-            telefonoResponsable: '+52 555 5555555',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-01-20',
-            proximoMantenimiento: '2024-07-20',
-            kilometrosRecorridos: 43000,
-            horasOperacion: 650,
-            observaciones: 'Sistemas funcionando correctamente',
-            creadoEn: '2024-01-15'
-          }
-        ]
+        ],
       },
-      {
-        id: '20240006',
-        clientName: 'Metro CDMX',
-        clientEmail: 'linea6@metro.com',
-        clientPhone: '+52 555 6789012',
-        serviceName: 'Implementación Sistema Híbrido Línea 6',
-        serviceDescription: 'Implementación de tecnología híbrida avanzada',
-        amount: 580000,
-        startDate: '2024-01-30',
-        endDate: '2024-08-30',
-        status: 'activo',
-        createdAt: '2024-01-25',
-        associatedMotors: [
-          {
-            id: '11',
-            marca: 'Stadler',
-            modelo: 'METRO',
-            numeroSerie: 'STD778990123',
-            tipo: 'hibrido',
-            potencia: '2000 kW',
-            voltaje: '1200 V',
-            anio: 2024,
-            lineaMetro: 'Línea 6',
-            numeroFormacion: 'F-601',
-            tipoFormacion: 'cabeza',
-            responsableTecnico: 'Carmen López',
-            emailResponsable: 'carmen.lopez@metro.com',
-            telefonoResponsable: '+52 555 6666666',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-01-30',
-            proximoMantenimiento: '2024-07-30',
-            kilometrosRecorridos: 15000,
-            horasOperacion: 240,
-            observaciones: 'Sistema híbrido funcionando óptimamente',
-            creadoEn: '2024-01-25'
-          },
-          {
-            id: '12',
-            marca: 'Stadler',
-            modelo: 'METRO',
-            numeroSerie: 'STD778990124',
-            tipo: 'hibrido',
-            potencia: '2000 kW',
-            voltaje: '1200 V',
-            anio: 2024,
-            lineaMetro: 'Línea 6',
-            numeroFormacion: 'F-602',
-            tipoFormacion: 'intermedio',
-            responsableTecnico: 'Carmen López',
-            emailResponsable: 'carmen.lopez@metro.com',
-            telefonoResponsable: '+52 555 6666666',
-            estado: 'operativo',
-            ultimoMantenimiento: '2024-02-01',
-            proximoMantenimiento: '2024-08-01',
-            kilometrosRecorridos: 12000,
-            horasOperacion: 195,
-            observaciones: 'Pruebas iniciales completadas',
-            creadoEn: '2024-01-25'
-          }
-        ]
-      }
     ];
     setProjects(sampleProjects);
   }, []);
@@ -460,10 +193,12 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const generateProjectId = () => {
       const year = new Date().getFullYear();
-      const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+      const randomNum = Math.floor(Math.random() * 9999)
+        .toString()
+        .padStart(4, '0');
       return `${year}${randomNum}`;
     };
 
@@ -471,14 +206,18 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
       id: editingProject?.id || generateProjectId(),
       ...formData,
       amount: parseFloat(formData.amount),
-      createdAt: editingProject?.createdAt || new Date().toISOString()
+      createdAt: editingProject?.createdAt || new Date().toISOString(),
     };
 
     if (editingProject) {
-      setProjects(prev => prev.map(project => 
-        project.id === editingProject.id ? newProject : project
-      ));
-      setSnackbar({ open: true, message: 'Proyecto actualizado exitosamente', severity: 'success' });
+      setProjects(prev =>
+        prev.map(project => (project.id === editingProject.id ? newProject : project)),
+      );
+      setSnackbar({
+        open: true,
+        message: 'Proyecto actualizado exitosamente',
+        severity: 'success',
+      });
     } else {
       setProjects(prev => [...prev, newProject]);
       setSnackbar({ open: true, message: 'Proyecto creado exitosamente', severity: 'success' });
@@ -496,10 +235,11 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
         clientPhone: project.clientPhone,
         serviceName: project.serviceName,
         serviceDescription: project.serviceDescription,
+        tipo: project.tipo,
         amount: project.amount.toString(),
         startDate: project.startDate,
         endDate: project.endDate,
-        status: project.status
+        status: project.status,
       });
     } else {
       setEditingProject(null);
@@ -509,10 +249,11 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
         clientPhone: '',
         serviceName: '',
         serviceDescription: '',
+        tipo: 'motores',
         amount: '',
         startDate: '',
         endDate: '',
-        status: 'pendiente'
+        status: 'pendiente',
       });
     }
     setOpenDialog(true);
@@ -530,11 +271,16 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'activo': return 'success';
-      case 'pendiente': return 'warning';
-      case 'completado': return 'info';
-      case 'cancelado': return 'error';
-      default: return 'default';
+      case 'activo':
+        return 'success';
+      case 'pendiente':
+        return 'warning';
+      case 'completado':
+        return 'info';
+      case 'cancelado':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
@@ -548,39 +294,77 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
     setSelectedProject(null);
   };
 
-  const getMotorStatusColor = (status: string) => {
-    switch (status) {
-      case 'operativo': return 'success';
-      case 'en_mantenimiento': return 'warning';
-      case 'requiere_mantenimiento': return 'error';
-      case 'fuera_servicio': return 'error';
-      default: return 'default';
+  const handleNavigateToMotor = (motorId: string) => {
+    if (onNavigateToMotors && selectedProject) {
+      onNavigateToMotors(selectedProject.id, motorId);
+    }
+    setMotorModalOpen(false);
+    setSelectedProject(null);
+  };
+
+  const handleNavigateToProjectMotors = () => {
+    if (onNavigateToMotors && selectedProject) {
+      onNavigateToMotors(selectedProject.id);
+    }
+    setMotorModalOpen(false);
+    setSelectedProject(null);
+  };
+
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'operativo':
+        return 'success';
+      case 'en_mantenimiento':
+        return 'info';
+      case 'requiere_mantenimiento':
+        return 'warning';
+      case 'fuera_servicio':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const getTipoIcon = (tipo: string) => {
+    switch (tipo) {
+      case 'electrico':
+        return <ElectricBolt sx={{ color: '#00e676' }} />;
+      case 'diesel_electrico':
+        return <Build sx={{ color: '#ff6d00' }} />;
+      case 'traccion_electrica':
+        return <Train sx={{ color: '#2196f3' }} />;
+      default:
+        return <Engineering sx={{ color: '#f44336' }} />;
     }
   };
 
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      project.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'todos' || project.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
+
+  // Ahora la navegación se maneja desde el layout con pestañas
+  // No necesitamos renderizar MotorModule aquí
 
   return (
     <Box>
       {/* Estadísticas */}
       <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
         <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-          <Card sx={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #374151 100%)', color: 'white' }}>
+          <Card
+            sx={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #374151 100%)', color: 'white' }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
                     {projects.length}
                   </Typography>
-                  <Typography variant="body2">
-                    Total Proyectos
-                  </Typography>
+                  <Typography variant="body2">Total Proyectos</Typography>
                 </Box>
                 <Business sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
@@ -588,16 +372,16 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
           </Card>
         </Box>
         <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-          <Card sx={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}>
+          <Card
+            sx={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white' }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
                     {projects.filter(c => c.status === 'activo').length}
                   </Typography>
-                  <Typography variant="body2">
-                    Proyectos Activos
-                  </Typography>
+                  <Typography variant="body2">Proyectos Activos</Typography>
                 </Box>
                 <VisibilityOutlined sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
@@ -612,7 +396,7 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
           <TextField
             placeholder="Buscar por ID, cliente o servicio..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -626,7 +410,7 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
             select
             label="Filtrar por estado"
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={e => setFilterStatus(e.target.value)}
             sx={{ minWidth: 150 }}
           >
             <MenuItem value="todos">Todos</MenuItem>
@@ -643,71 +427,89 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: '#f8f9fa' }}>
-              <TableCell sx={{ fontWeight: 'bold', width: '120px', minWidth: '120px' }}>ID Proyecto</TableCell>
-              <TableCell sx={{ fontWeight: 'bold', width: '80px' }}>Motores</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Cliente</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Servicio</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Monto</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Estado</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: '250px', minWidth: '250px' }}>
+                No. Proyecto
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: '350px', maxWidth: '350px' }}>
+                Descripción
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: '100px' }}>Tipo</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: '80px' }}>Elementos</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: '120px' }}>Monto</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', width: '100px' }}>Estado</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredProjects.map((project) => (
-              <TableRow 
-                key={project.id} 
-                hover 
+            {filteredProjects.map(project => (
+              <TableRow
+                key={project.id}
+                hover
                 onClick={() => handleOpenMotorModal(project)}
-                sx={{ 
+                sx={{
                   cursor: 'pointer',
                   '&:hover': {
-                    backgroundColor: '#f5f5f5'
-                  }
+                    backgroundColor: '#f5f5f5',
+                  },
                 }}
               >
-                <TableCell sx={{ width: '120px', minWidth: '120px' }}>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontWeight: 'bold', 
+                <TableCell sx={{ width: '250px', minWidth: '250px' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 'bold',
                       color: '#1e3a8a',
                       fontFamily: 'monospace',
-                      fontSize: '0.9rem'
+                      fontSize: '0.85rem',
                     }}
                   >
                     {project.id}
                   </Typography>
                 </TableCell>
+                <TableCell sx={{ width: '350px', maxWidth: '350px' }}>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontWeight: 'medium',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={project.serviceDescription}
+                  >
+                    {project.serviceDescription}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={{ width: '100px' }}>
+                  <Chip
+                    label={project.tipo.charAt(0).toUpperCase() + project.tipo.slice(1)}
+                    color="default"
+                    variant="outlined"
+                    size="small"
+                    sx={{ textTransform: 'capitalize' }}
+                  />
+                </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Chip 
-                      label={project.associatedMotors?.length || 0} 
+                    <Chip
+                      label={project.associatedMotors?.length || 0}
                       color="primary"
-                      sx={{ '& .MuiBadge-badge': { fontSize: '0.7rem', minWidth: '18px', height: '18px' } }}
+                      sx={{
+                        '& .MuiBadge-badge': {
+                          fontSize: '0.7rem',
+                          minWidth: '18px',
+                          height: '18px',
+                        },
+                      }}
                     />
                   </Box>
                 </TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                      {project.clientName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {project.clientEmail}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                    {project.serviceName}
-                  </Typography>
-                </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: '120px' }}>
                   <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
                     ${project.amount.toLocaleString()}
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: '100px' }}>
                   <Chip
                     label={project.status}
                     color={getStatusColor(project.status) as any}
@@ -716,20 +518,20 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
                   />
                 </TableCell>
                 <TableCell>
-                  <IconButton 
-                    size="small" 
-                    color="primary" 
-                    onClick={(e) => {
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={e => {
                       e.stopPropagation();
                       handleOpenDialog(project);
                     }}
                   >
                     <Edit />
                   </IconButton>
-                  <IconButton 
-                    size="small" 
-                    color="error" 
-                    onClick={(e) => {
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={e => {
                       e.stopPropagation();
                       handleDelete(project.id);
                     }}
@@ -760,9 +562,7 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
 
       {/* Dialog para crear/editar proyecto */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}
-        </DialogTitle>
+        <DialogTitle>{editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}</DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
@@ -821,6 +621,21 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
               required
             />
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                <TextField
+                  name="tipo"
+                  label="Tipo de Proyecto"
+                  value={formData.tipo}
+                  onChange={handleInputChange}
+                  fullWidth
+                  required
+                  select
+                >
+                  <MenuItem value="motores">Motores</MenuItem>
+                  <MenuItem value="tarjetas">Tarjetas</MenuItem>
+                  <MenuItem value="balizas">Balizas</MenuItem>
+                </TextField>
+              </Box>
               <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
                 <TextField
                   name="amount"
@@ -871,64 +686,236 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
       </Dialog>
 
       {/* Modal para mostrar motores asociados */}
-      <Dialog open={motorModalOpen} onClose={handleCloseMotorModal} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Build sx={{ color: '#1e3a8a' }} />
-            <Typography variant="h6" component="div">
-              Proyecto {selectedProject?.id} - {selectedProject?.clientName}
-            </Typography>
+      <Dialog open={motorModalOpen} onClose={handleCloseMotorModal} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ p: 0 }}>
+          {/* Banner destacado del proyecto actual */}
+          <Box
+            sx={{
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+              color: 'white',
+              p: 3,
+              borderRadius: '4px 4px 0 0',
+            }}
+          >
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  sx={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '50%',
+                    p: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Build sx={{ fontSize: '2rem' }} />
+                </Box>
+                <Box>
+                  <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    🚀 PROYECTO ACTIVO
+                  </Typography>
+                  <Typography variant="h6" component="div" sx={{ opacity: 0.9 }}>
+                    {selectedProject?.id} - {selectedProject?.clientName}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Chip
+                  label={selectedProject?.status?.toUpperCase() || 'PENDIENTE'}
+                  sx={{
+                    backgroundColor:
+                      selectedProject?.status === 'activo'
+                        ? '#22c55e'
+                        : selectedProject?.status === 'completado'
+                        ? '#3b82f6'
+                        : selectedProject?.status === 'pendiente'
+                        ? '#f59e0b'
+                        : '#ef4444',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem',
+                    mb: 1,
+                  }}
+                />
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  {selectedProject?.associatedMotors?.length || 0} motores asociados
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Información adicional del proyecto */}
+            <Box
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 2,
+                p: 2,
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 1 }}>
+                📋 {selectedProject?.serviceDescription}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  🏷️ Tipo:{' '}
+                  {selectedProject?.tipo
+                    ? selectedProject.tipo.charAt(0).toUpperCase() + selectedProject.tipo.slice(1)
+                    : 'No definido'}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  💰 Monto: ${selectedProject?.amount?.toLocaleString()}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  📅 Inicio:{' '}
+                  {selectedProject?.startDate
+                    ? new Date(selectedProject.startDate).toLocaleDateString()
+                    : 'No definido'}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  📧 {selectedProject?.clientEmail}
+                </Typography>
+              </Box>
+            </Box>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            {selectedProject?.serviceName} | Total de motores: {selectedProject?.associatedMotors?.length || 0}
-          </Typography>
-          
-          {selectedProject?.associatedMotors?.length ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {selectedProject.associatedMotors.map((motor) => (
-                <Paper 
-                  key={motor.id} 
-                  sx={{ 
-                    p: 2, 
-                    border: '1px solid #e0e0e0', 
-                    borderRadius: 2,
-                    cursor: 'pointer',
-                    '&:hover': {
-                      backgroundColor: '#f5f7fa',
-                      borderColor: '#1e3a8a'
-                    }
-                  }}
-                  onClick={() => onNavigateToMotor(motor.id)}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Build sx={{ color: '#1e3a8a', fontSize: '1.2rem' }} />
-                      <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
-                          {motor.marca} {motor.modelo}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {motor.lineaMetro} • Formación {motor.numeroFormacion} • {motor.potencia}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Próximo mantenimiento: {motor.proximoMantenimiento}
-                      </Typography>
-                      <Chip
-                        label={motor.estado.replace('_', ' ')}
-                        color={getMotorStatusColor(motor.estado) as any}
-                        variant="filled"
-                        size="small"
-                      />
-                    </Box>
-                  </Box>
-                </Paper>
-              ))}
+        <DialogContent sx={{ pt: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              mb: 3,
+              p: 2,
+              backgroundColor: '#f8f9fa',
+              borderRadius: 2,
+              border: '1px solid #e9ecef',
+            }}
+          >
+            <Box
+              sx={{
+                backgroundColor: '#1e3a8a',
+                color: 'white',
+                borderRadius: '50%',
+                p: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Train />
             </Box>
+            <Typography variant="h6" sx={{ color: '#1e3a8a', fontWeight: 'bold' }}>
+              Motores del Proyecto {selectedProject?.id}
+            </Typography>
+          </Box>
+
+          {selectedProject?.associatedMotors?.length ? (
+            <>
+              <Box sx={{ mb: 3 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<Build />}
+                  onClick={handleNavigateToProjectMotors}
+                  sx={{
+                    backgroundColor: '#1e3a8a',
+                    '&:hover': { backgroundColor: '#1e40af' },
+                  }}
+                >
+                  Ver todos los motores del proyecto
+                </Button>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                O selecciona un motor específico de la tabla:
+              </Typography>
+
+              {/* Tabla de motores */}
+              <TableContainer component={Paper} sx={{ mb: 2 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#f8f9fa' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Motor</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Línea/Formación</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Tipo</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Kilometraje</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Estado</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Próximo Mantenimiento</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedProject?.associatedMotors?.map(motor => (
+                      <TableRow
+                        key={motor.id}
+                        hover
+                        sx={{
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: 'rgba(30, 58, 138, 0.05)',
+                          },
+                        }}
+                        onClick={() => handleNavigateToMotor(motor.id)}
+                      >
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {getTipoIcon(motor.tipo)}
+                            <Box>
+                              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                                {motor.marca} {motor.modelo}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {motor.numeroSerie}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                              {motor.lineaMetro}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Formación: {motor.numeroFormacion} ({motor.tipoFormacion})
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                            {motor.tipo.replace('_', ' ')}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {motor.potencia} - {motor.voltaje}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
+                            {motor.kilometrosRecorridos.toLocaleString()} km
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {motor.horasOperacion} hrs
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={motor.estado.replace('_', ' ')}
+                            color={getEstadoColor(motor.estado) as any}
+                            variant="outlined"
+                            size="small"
+                            sx={{ textTransform: 'capitalize' }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {new Date(motor.proximoMantenimiento).toLocaleDateString()}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Build sx={{ fontSize: '4rem', color: '#ccc', mb: 2 }} />
@@ -951,7 +938,10 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity}>
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
@@ -959,4 +949,4 @@ const ProjectModule: React.FC<ProjectModuleProps> = ({
   );
 };
 
-export default ProjectModule; 
+export default ProjectModule;

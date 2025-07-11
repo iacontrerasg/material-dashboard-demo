@@ -36,20 +36,20 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigateToProject }) =>
   const stats = [
     {
       title: 'Proyectos Activos',
-      value: '6',
+      value: '3',
       icon: <CheckCircle />,
       color: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-      change: '+1 este mes'
+      change: 'STC Contracts 2024'
     },
     {
-      title: 'Motores Operativos',
-      value: '8',
+      title: 'Equipos Operativos',
+      value: '7',
       icon: <Train />,
       color: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
-      change: '+2 esta semana'
+      change: 'balizas + tarjetas + motores'
     },
     {
-      title: 'Motores en Reparación',
+      title: 'Equipos en Mantenimiento',
       value: '2',
       icon: <Engineering />,
       color: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
@@ -57,67 +57,22 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigateToProject }) =>
     },
     {
       title: 'Mantenimientos Programados',
-      value: '2',
+      value: '9',
       icon: <Schedule />,
       color: 'linear-gradient(135deg, #1e3a8a 0%, #374151 100%)',
-      change: 'próximos 30 días'
+      change: 'próximos 6 meses'
     }
   ];
 
   const recentProjects = [
     {
-      id: '20240001',
-      client: 'Metro CDMX',
-      service: 'Modernización Sistema Eléctrico Línea 1',
-      amount: '$450,000',
+      id: 'STC-GACS-CNCS-119/2024',
+      client: 'Sistema de Transporte Colectivo (STC)',
+      service: 'Mantenimiento a Motores Eléctricos',
+      amount: '$3,500,000',
       status: 'activo',
-      date: '2024-01-15',
-      motors: 2
-    },
-    {
-      id: '20240002',
-      client: 'Metro CDMX',
-      service: 'Mantenimiento Preventivo Línea 2',
-      amount: '$280,000',
-      status: 'activo',
-      date: '2024-01-20',
-      motors: 2
-    },
-    {
-      id: '20240003',
-      client: 'Metro CDMX',
-      service: 'Instalación Sistema Seguridad Línea 3',
-      amount: '$320,000',
-      status: 'activo',
-      date: '2024-01-10',
-      motors: 2
-    },
-    {
-      id: '20240004',
-      client: 'Metro CDMX',
-      service: 'Reparación Motores Tracción Línea 4',
-      amount: '$190,000',
-      status: 'activo',
-      date: '2024-01-25',
-      motors: 2
-    },
-    {
-      id: '20240005',
-      client: 'Metro CDMX',
-      service: 'Inspección Técnica Línea 5',
-      amount: '$95,000',
-      status: 'activo',
-      date: '2024-01-18',
-      motors: 2
-    },
-    {
-      id: '20240006',
-      client: 'Metro CDMX',
-      service: 'Implementación Sistema Híbrido Línea 6',
-      amount: '$580,000',
-      status: 'activo',
-      date: '2024-01-30',
-      motors: 2
+      date: '2024-03-01',
+      motors: 3
     }
   ];
 
@@ -161,7 +116,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigateToProject }) =>
           Dashboard - INDUSTRIAS FMD
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Resumen general del sistema de proyectos y motores del metro
+          Contratos STC 2024 - Balizas, Tarjetas Electrónicas y Motores
         </Typography>
       </Box>
 
@@ -348,12 +303,12 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigateToProject }) =>
             </Box>
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2">Motores Operativos</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>8/12</Typography>
+                <Typography variant="body2">Equipos Operativos</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>7/9</Typography>
               </Box>
               <LinearProgress 
                 variant="determinate" 
-                value={67} 
+                value={78} 
                 sx={{ 
                   height: 8, 
                   borderRadius: 4,
@@ -374,20 +329,20 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onNavigateToProject }) =>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2">Proyectos Activos</Typography>
-                <Chip label="6" size="small" color="success" />
+                <Chip label="3" size="small" color="success" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2">Reparaciones Urgentes</Typography>
-                <Chip label="2" size="small" color="error" />
+                <Typography variant="body2">Contratos STC 2024</Typography>
+                <Chip label="$5.6M" size="small" color="primary" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="body2">Motores en Mantenimiento</Typography>
+                <Typography variant="body2">Equipos en Mantenimiento</Typography>
                 <Chip label="2" size="small" color="info" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2">Próximos Mantenimientos</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1e3a8a' }}>
-                  2 programados
+                  9 programados
                 </Typography>
               </Box>
             </Box>
